@@ -209,7 +209,7 @@ function lovr.draw(pass)
   pass:setColor(1, 0.7, 0.3)
   for key in pairs(blocks) do
     local x, y, z = string.match(key, "(-?%d+),(-?%d+),(-?%d+)")
-    pass:box(tonumber(x), tonumber(y), tonumber(z), 1)
+    pass:box(tonumber(x), tonumber(y) + 0.5, tonumber(z), 1, 1, 1)
   end
   
   -- Draw controls help text
