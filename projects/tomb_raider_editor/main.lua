@@ -24,51 +24,52 @@ local blocks = {} -- Store placed blocks: key = "x,y,z", value = true
 local currentFile = "level1.txt" -- Default save file
 local gridSize = 10
 
--- Camera state
-local camera = {
-  position = lovr.math.newVec3(0, 1.7, 3), -- Typical standing height and closer to grid
-  yaw = 0,
-  pitch = -0.2, -- Slight downward tilt to see grid better
-  speed = 5 -- Movement speed in meters per second
-}
+-- Camera class
+local Camera = {}
+Camera.__index = Camera
 
--- Convert screen coordinates to world ray
-local function screenToWorldRay(x, y)
+function Camera.new()
+  local self = setmetatable({}, Camera)
+  self.position = lovr.math.newVec3(0, 1.7, 3) -- Typical standing height and closer to grid
+  self.yaw = 0
+  self.pitch = -0.2 -- Slight downward tilt to see grid better
+  self.speed = 5 -- Movement speed in meters per second
+  return self
+end
+
+function Camera:getRotation()
+  return lovr.math.quat(self.yaw, 0, 1, 0) * lovr.math.quat(self.pitch, 1, 0, 0)
+end
+
+function Camera:getForward()
+  return self:getRotation():direction()
+end
+
+function Camera:getRight()
+  local yawRotation = lovr.math.quat(self.yaw, 0, 1, 0)
+  return yawRotation:direction():cross(lovr.math.vec3(0, 1, 0)):normalize()
+end
+
+function Camera:screenToWorldRay(x, y)
   local width, height = lovr.system.getWindowDimensions()
   -- Convert to normalized device coordinates (-1 to 1)
   local nx = (2 * x / width) - 1
   local ny = 1 - (2 * y / height)
   
-  -- Create view matrix using the same rotation order as the camera
-  local rotation = lovr.math.quat(camera.yaw, 0, 1, 0) * lovr.math.quat(camera.pitch, 1, 0, 0)
-  
-  -- Get camera basis vectors
-  local forward = rotation:direction()
-  local worldUp = lovr.math.vec3(0, 1, 0)
-  local right = worldUp:cross(forward):normalize()
-  local up = forward:cross(right):normalize()
-  
-  -- Create view matrix from camera orientation
-  local view = lovr.math.mat4():target(camera.position, camera.position + forward, up)
-  
   -- Create ray in view space
   local tanFov = math.tan(math.rad(67.5) / 2)
-  local width, height = lovr.system.getWindowDimensions()
   local aspect = width / height
-  
-  -- Calculate ray direction in view space
   local rayX = nx * aspect * tanFov
   local rayY = ny * tanFov
   local rayDir = lovr.math.vec3(rayX, rayY, -1):normalize()
   
   -- Transform ray direction to world space using camera rotation
-  rayDir = rotation:mul(rayDir)
+  rayDir = self:getRotation():mul(rayDir)
   
-  -- Return ray starting from camera position
-  return camera.position, rayDir
+  return self.position, rayDir
 end
 
-function lovr.update(dt)
+function Camera:update(dt)
   -- Get input vectors
   local dx = 0
   local dy = 0
@@ -87,39 +88,30 @@ function lovr.update(dt)
   if lovr.system.isKeyDown('lshift') then dy = -1 end
   
   -- Camera rotation
-  if lovr.system.isKeyDown('left') then camera.yaw = camera.yaw + dt end
-  if lovr.system.isKeyDown('right') then camera.yaw = camera.yaw - dt end
+  if lovr.system.isKeyDown('left') then self.yaw = self.yaw + dt end
+  if lovr.system.isKeyDown('right') then self.yaw = self.yaw - dt end
   if lovr.system.isKeyDown('up') then 
-    camera.pitch = math.min(camera.pitch + dt, math.pi/2)
+    self.pitch = math.min(self.pitch + dt, math.pi/2)
   end
   if lovr.system.isKeyDown('down') then
-    camera.pitch = math.max(camera.pitch - dt, -math.pi/2)
+    self.pitch = math.max(self.pitch - dt, -math.pi/2)
   end
   
   -- Update position based on input
   if dx ~= 0 or dy ~= 0 or dz ~= 0 then
-    local moveSpeed = camera.speed * dt
-    
-    -- Calculate camera direction vectors using quaternion rotation
-    local rotation = lovr.math.quat(camera.yaw, 0, 1, 0) * lovr.math.quat(camera.pitch, 1, 0, 0)
-    local forward = rotation:direction()
-    
-    -- Calculate right vector (always horizontal, based on yaw only)
-    local yawRotation = lovr.math.quat(camera.yaw, 0, 1, 0)
-    local right = yawRotation:direction():cross(lovr.math.vec3(0, 1, 0)):normalize()
-    
-    -- Calculate movement vector
+    local moveSpeed = self.speed * dt
     local movement = lovr.math.vec3()
     
     -- Forward/backward movement (using flattened forward direction)
     if dz ~= 0 then
+      local forward = self:getForward()
       local flatForward = lovr.math.vec3(forward.x, 0, forward.z):normalize()
       movement:add(flatForward:mul(-dz)) -- Negative because forward is -Z
     end
     
     -- Left/right movement (strafe)
     if dx ~= 0 then
-      movement:add(right:mul(dx))
+      movement:add(self:getRight():mul(dx))
     end
     
     -- Up/down movement (world space)
@@ -134,8 +126,15 @@ function lovr.update(dt)
     
     -- Apply movement
     movement:mul(moveSpeed)
-    camera.position:add(movement)
+    self.position:add(movement)
   end
+end
+
+-- Create camera instance
+local camera = Camera.new()
+
+function lovr.update(dt)
+  camera:update(dt)
 end
 
 -- Helper functions
@@ -169,7 +168,7 @@ local function rayPlaneIntersection(rayOrigin, rayDir, planePoint, planeNormal)
 end
 
 function lovr.mousepressed(x, y, button)
-  local origin, direction = screenToWorldRay(x, y)
+  local origin, direction = camera:screenToWorldRay(x, y)
   
   -- Intersect with ground plane (y = 0)
   local hitPoint = rayPlaneIntersection(
@@ -192,10 +191,7 @@ function lovr.mousepressed(x, y, button)
 end
 
 function lovr.draw(pass)
-  -- Set camera view
-  -- Apply yaw first, then pitch to prevent roll
-  local rotation = lovr.math.quat(camera.yaw, 0, 1, 0) * lovr.math.quat(camera.pitch, 1, 0, 0)
-  pass:setViewPose(1, camera.position, rotation)
+  pass:setViewPose(1, camera.position, camera:getRotation())
   
   -- Draw grid
   -- Draw a solid dark plane first
