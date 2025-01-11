@@ -39,14 +39,12 @@ local function screenToWorldRay(x, y)
   local nx = (2 * x / width) - 1
   local ny = 1 - (2 * y / height)
   
-  -- Create view matrix
+  -- Create view matrix using the same rotation order as the camera
+  local rotation = lovr.math.quat(camera.yaw, 0, 1, 0) * lovr.math.quat(camera.pitch, 1, 0, 0)
+  local forward = rotation:direction()
   local view = lovr.math.mat4():lookAt(
     camera.position,
-    camera.position + lovr.math.vec3(
-      -math.sin(camera.yaw) * math.cos(camera.pitch),
-      math.sin(camera.pitch),
-      -math.cos(camera.yaw) * math.cos(camera.pitch)
-    )
+    camera.position + forward
   )
   
   -- Get inverse view-projection matrix
@@ -104,22 +102,21 @@ function lovr.update(dt)
   if dx ~= 0 or dy ~= 0 or dz ~= 0 then
     local moveSpeed = camera.speed * dt
     
-    -- Calculate camera direction vectors
-    local forward = lovr.math.vec3(
-      math.sin(camera.yaw) * math.cos(camera.pitch),
-      math.sin(camera.pitch),
-      math.cos(camera.yaw) * math.cos(camera.pitch)
-    )
+    -- Calculate camera direction vectors using quaternion rotation
+    local rotation = lovr.math.quat(camera.yaw, 0, 1, 0) * lovr.math.quat(camera.pitch, 1, 0, 0)
+    local forward = rotation:direction()
     
-    -- Calculate right vector by crossing forward with world up
-    local right = lovr.math.vec3(0, 1, 0):cross(forward):normalize()
+    -- Calculate right vector (always horizontal, based on yaw only)
+    local yawRotation = lovr.math.quat(camera.yaw, 0, 1, 0)
+    local right = yawRotation:direction():cross(lovr.math.vec3(0, 1, 0)):normalize()
     
     -- Calculate movement vector
     local movement = lovr.math.vec3()
     
-    -- Forward/backward movement
+    -- Forward/backward movement (using flattened forward direction)
     if dz ~= 0 then
-      movement:add(forward:mul(dz))
+      local flatForward = lovr.math.vec3(forward.x, 0, forward.z):normalize()
+      movement:add(flatForward:mul(-dz)) -- Negative because forward is -Z
     end
     
     -- Left/right movement (strafe)
@@ -127,7 +124,7 @@ function lovr.update(dt)
       movement:add(right:mul(dx))
     end
     
-    -- Up/down movement in world space
+    -- Up/down movement (world space)
     if dy ~= 0 then
       movement:add(lovr.math.vec3(0, dy, 0))
     end
@@ -198,7 +195,9 @@ end
 
 function lovr.draw(pass)
   -- Set camera view
-  pass:setViewPose(1, camera.position, lovr.math.quat(camera.pitch, 1, 0, 0) * lovr.math.quat(camera.yaw, 0, 1, 0))
+  -- Apply yaw first, then pitch to prevent roll
+  local rotation = lovr.math.quat(camera.yaw, 0, 1, 0) * lovr.math.quat(camera.pitch, 1, 0, 0)
+  pass:setViewPose(1, camera.position, rotation)
   
   -- Draw grid
   -- Draw a solid dark plane first
@@ -226,8 +225,8 @@ function lovr.draw(pass)
     "Left Click - Place block\n" ..
     "Right Click - Remove block\n" ..
     "Esc - Exit",
-    -0.5, 0.4, -1,
-    0.15
+    -0.3, 0.3, -1,
+    0.08
   )
 end
 
