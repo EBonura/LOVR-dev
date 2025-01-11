@@ -103,15 +103,43 @@ function lovr.update(dt)
   -- Update position based on input
   if dx ~= 0 or dy ~= 0 or dz ~= 0 then
     local moveSpeed = camera.speed * dt
-    -- Calculate movement amounts
-    local mx = (dx * math.cos(camera.yaw) - dz * math.sin(camera.yaw)) * moveSpeed
-    local mz = (dx * math.sin(camera.yaw) + dz * math.cos(camera.yaw)) * moveSpeed
-    local my = dy * moveSpeed
     
-    -- Update position
-    camera.position.x = camera.position.x + mx
-    camera.position.y = camera.position.y + my
-    camera.position.z = camera.position.z + mz
+    -- Calculate camera direction vectors
+    local forward = lovr.math.vec3(
+      math.sin(camera.yaw) * math.cos(camera.pitch),
+      math.sin(camera.pitch),
+      math.cos(camera.yaw) * math.cos(camera.pitch)
+    )
+    
+    -- Calculate right vector by crossing forward with world up
+    local right = lovr.math.vec3(0, 1, 0):cross(forward):normalize()
+    
+    -- Calculate movement vector
+    local movement = lovr.math.vec3()
+    
+    -- Forward/backward movement
+    if dz ~= 0 then
+      movement:add(forward:mul(dz))
+    end
+    
+    -- Left/right movement (strafe)
+    if dx ~= 0 then
+      movement:add(right:mul(dx))
+    end
+    
+    -- Up/down movement in world space
+    if dy ~= 0 then
+      movement:add(lovr.math.vec3(0, dy, 0))
+    end
+    
+    -- Normalize movement vector if we're moving in multiple directions
+    if dx ~= 0 and dz ~= 0 then
+      movement:normalize()
+    end
+    
+    -- Apply movement
+    movement:mul(moveSpeed)
+    camera.position:add(movement)
   end
 end
 
