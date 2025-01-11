@@ -41,33 +41,31 @@ local function screenToWorldRay(x, y)
   
   -- Create view matrix using the same rotation order as the camera
   local rotation = lovr.math.quat(camera.yaw, 0, 1, 0) * lovr.math.quat(camera.pitch, 1, 0, 0)
+  
+  -- Get camera basis vectors
   local forward = rotation:direction()
-  local view = lovr.math.mat4():lookAt(
-    camera.position,
-    camera.position + forward
-  )
+  local worldUp = lovr.math.vec3(0, 1, 0)
+  local right = worldUp:cross(forward):normalize()
+  local up = forward:cross(right):normalize()
   
-  -- Get inverse view-projection matrix
-  local invViewProj = (projection * view):invert()
+  -- Create view matrix from camera orientation
+  local view = lovr.math.mat4():target(camera.position, camera.position + forward, up)
   
-  -- Transform NDC point to world space
-  local nearPoint = lovr.math.vec4(nx, ny, -1, 1):transform(invViewProj)
-  local farPoint = lovr.math.vec4(nx, ny, 1, 1):transform(invViewProj)
+  -- Create ray in view space
+  local tanFov = math.tan(math.rad(67.5) / 2)
+  local width, height = lovr.system.getWindowDimensions()
+  local aspect = width / height
   
-  -- Convert to vec3s and normalize
-  local nearPoint3 = lovr.math.vec3(
-    nearPoint.x / nearPoint.w,
-    nearPoint.y / nearPoint.w,
-    nearPoint.z / nearPoint.w
-  )
-  local farPoint3 = lovr.math.vec3(
-    farPoint.x / farPoint.w,
-    farPoint.y / farPoint.w,
-    farPoint.z / farPoint.w
-  )
+  -- Calculate ray direction in view space
+  local rayX = nx * aspect * tanFov
+  local rayY = ny * tanFov
+  local rayDir = lovr.math.vec3(rayX, rayY, -1):normalize()
   
-  -- Return ray origin and normalized direction
-  return nearPoint3, (farPoint3 - nearPoint3):normalize()
+  -- Transform ray direction to world space using camera rotation
+  rayDir = rotation:mul(rayDir)
+  
+  -- Return ray starting from camera position
+  return camera.position, rayDir
 end
 
 function lovr.update(dt)
