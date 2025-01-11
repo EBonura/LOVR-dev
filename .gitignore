@@ -1,0 +1,10 @@
+# Ignore everything
+*
+
+# But not these files...
+!.gitignore
+!README.md
+
+# And not the projects directory...
+!projects/
+!projects/**
