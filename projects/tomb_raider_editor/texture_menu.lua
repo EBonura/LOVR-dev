@@ -173,25 +173,6 @@ function TextureMenu.draw(pass)
     )
   end
   
-  -- Draw cursor indicators
-  local width, height = lovr.system.getWindowDimensions()
-  
-  -- Draw 2D UI point in red
-  local uiX = (currentMouseX / width) * 2 - 1
-  local uiY = -(currentMouseY / height) * 2 + 1
-  pass:setColor(1, 0, 0, 1)  -- Red for UI point
-  pass:circle(uiX, uiY, -0.99, 0.01)  -- Made bigger for visibility
-  
-  -- Draw simulated 3D point in blue (inverted coordinates)
-  local worldX = -uiX  -- Invert X to show the left/right swap
-  local worldY = uiY * 1.5  -- Exaggerate Y to show the scaling
-  pass:setColor(0, 0, 1, 1)  -- Blue for 3D point
-  pass:circle(worldX, worldY, -0.98, 0.01)  -- Made bigger for visibility
-  
-  -- Draw connecting line
-  pass:setColor(0.5, 0.5, 1, 0.5)  -- Light blue, semi-transparent
-  pass:line(uiX, uiY, -0.99, worldX, worldY, -0.98)
-  
   -- Restore view pose
   pass:pop()
 end

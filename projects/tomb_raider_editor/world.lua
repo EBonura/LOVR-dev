@@ -63,6 +63,7 @@ function World:updateCursor(camera, mouseX, mouseY)
   if hitPoint then
     local gx, gy, gz = utils.worldToGrid(hitPoint.x, hitPoint.y, hitPoint.z)
     self.cursorPosition = {x = gx, y = self.gridHeight + 0.5, z = gz}
+    self.hitPoint = hitPoint  -- Store the actual hit point for drawing the dot
     
     -- Only show preview if there's no block at this position at the current grid height
     local key = utils.getBlockKey(gx, self.gridHeight + 0.5, gz)
@@ -74,6 +75,7 @@ function World:updateCursor(camera, mouseX, mouseY)
   else
     self.cursorPosition = nil
     self.previewPosition = nil
+    self.hitPoint = nil
   end
 end
 
@@ -173,13 +175,10 @@ function World:draw(pass)
       pass:setMaterial()
     end
   end
-  
-  -- Draw cursor wireframe (red)
-  if self.cursorPosition then
+  -- Draw hit point dot (red)
+  if self.hitPoint then
     pass:setColor(1, 0, 0, 1)
-    pass:setWireframe(true)
-    pass:box(self.cursorPosition.x, self.cursorPosition.y, self.cursorPosition.z, 1.01, 1.01, 1.01)
-    pass:setWireframe(false)
+    pass:sphere(self.hitPoint.x, self.hitPoint.y, self.hitPoint.z, 0.05)
   end
 end
 
