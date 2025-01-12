@@ -84,10 +84,10 @@ function lovr.mousepressed(x, y, button)
          and math.abs(x - lastClickX) < 2 
          and math.abs(y - lastClickY) < 2 then
         -- Double click detected - remove block
-        world:removeBlock(gx, world.gridHeight, gz)
+        world:removeBlock(gx, world.gridHeight + 0.5, gz)
       else
         -- Single click - place block
-        world:placeBlock(gx, world.gridHeight, gz)
+        world:placeBlock(gx, world.gridHeight + 0.5, gz)
       end
     end
   end
