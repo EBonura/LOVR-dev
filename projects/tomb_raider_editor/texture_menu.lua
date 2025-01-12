@@ -1,8 +1,9 @@
 local TextureMenu = {}
 
--- Current mouse position in world coordinates
+-- Current mouse position in screen coordinates
 local currentMouseX = 0
 local currentMouseY = 0
+local camera = nil  -- Store camera reference
 
 -- Store loaded textures and their names
 local textures = {}
@@ -18,7 +19,8 @@ local START_X = 0.7       -- Position textures within the 20% panel
 local START_Y = 0.5       -- Top edge of menu
 local PANEL_WIDTH = 0.4   -- Width of the right panel (20% of screen = 0.4 in normalized coords)
 
-function TextureMenu.load()
+function TextureMenu.load(cam)
+  camera = cam  -- Store camera reference
   -- Load all textures from the Textures directory
   local textureFiles = {
     "Brick01-128.png",
@@ -39,22 +41,32 @@ function TextureMenu.load()
   end
 end
 
-function TextureMenu.updateHover(x, y)
-  -- Convert screen coordinates to world coordinates
+-- Helper function to convert screen coordinates to UI space
+local function screenToUI(x, y)
   local width, height = lovr.system.getWindowDimensions()
-  local worldX = (x / width * 2 - 1) * 0.95  -- Scale to match our coordinate system
-  local worldY = -(y / height * 2 - 1) * 0.95 -- Flip Y and scale
+  -- Keep x in screen space for panel check
+  local screenX = x
+  -- Convert coordinates to normalized UI space
+  local uiX = x / width
+  local uiY = y / height
+  return screenX, uiX, uiY
+end
+
+function TextureMenu.updateHover(x, y)
+  -- Store raw screen coordinates
+  currentMouseX = x
+  currentMouseY = y
   
-  -- Update current mouse position
-  currentMouseX = worldX
-  currentMouseY = worldY
+  -- Convert to UI space
+  local screenX, uiX, uiY = screenToUI(x, y)
   
-  -- Check if mouse is over texture squares area
-  local centerX = START_X + TEXTURE_SIZE/2
-  if math.abs(worldX - centerX) <= TEXTURE_SIZE/2 then
+  -- Check if mouse is over texture squares area (80% of screen width)
+  if uiX >= 0.8 then
+    -- Convert UI Y coordinate to match texture positions
+    local texY = uiY * 2 - 1  -- Convert to -1 to 1 range
     for i, _ in ipairs(textures) do
-      local texY = START_Y - (i-1) * (TEXTURE_SIZE + MARGIN)
-      if worldY >= texY - TEXTURE_SIZE/2 and worldY <= texY + TEXTURE_SIZE/2 then
+      local targetY = START_Y - (i-1) * (TEXTURE_SIZE + MARGIN)
+      if math.abs(texY - targetY) <= TEXTURE_SIZE/2 then
         hoveredTexture = i
         return
       end
@@ -64,8 +76,8 @@ function TextureMenu.updateHover(x, y)
 end
 
 function TextureMenu.isOverPanel(x, y)
-  local width = lovr.system.getWindowDimensions()
-  return x / width >= 0.8  -- Check if mouse is in right 20% of screen (80% mark)
+  local screenX, uiX, _ = screenToUI(x, y)
+  return uiX >= 0.8  -- Check if mouse is in right 20% of screen
 end
 
 function TextureMenu.draw(pass)
@@ -129,7 +141,6 @@ function TextureMenu.draw(pass)
   
   -- Draw each texture
   for i, tex in ipairs(textures) do
-    local y = START_Y - i * (TEXTURE_SIZE + MARGIN)  -- Shifted down to make room for "No Texture"
     local y = START_Y - i * (TEXTURE_SIZE + MARGIN)
     
     -- Draw hover highlight in red
@@ -153,63 +164,73 @@ function TextureMenu.draw(pass)
     -- Draw texture name
     pass:setColor(1, 1, 1, 1)
     pass:text(tex.name, 
-      START_X + TEXTURE_SIZE + MARGIN, y, -1,  -- Position
-      0.03,  -- Scale
-      0,     -- Angle
-      0, 1, 0,  -- Rotation axis
-      0,     -- Wrap
-      'left', -- Horizontal alignment
-      'middle' -- Vertical alignment
+      START_X + TEXTURE_SIZE + MARGIN, y, -1,
+      0.03,
+      0, 0, 1, 0,
+      0,
+      'left',
+      'middle'
     )
   end
   
-  -- Draw cursor indicator
-  pass:setColor(1, 0, 0, 1)  -- Red color
-  pass:circle(currentMouseX, currentMouseY, -0.99, 0.005)  -- Small circle at cursor position
-  pass:setColor(1, 0, 0, 0.3)  -- Transparent red
-  pass:circle(currentMouseX, currentMouseY, -0.99, 0.01)   -- Larger halo effect
+  -- Draw cursor indicators
+  local width, height = lovr.system.getWindowDimensions()
+  
+  -- Draw 2D UI point in red
+  local uiX = (currentMouseX / width) * 2 - 1
+  local uiY = -(currentMouseY / height) * 2 + 1
+  pass:setColor(1, 0, 0, 1)  -- Red for UI point
+  pass:circle(uiX, uiY, -0.99, 0.01)  -- Made bigger for visibility
+  
+  -- Draw simulated 3D point in blue (inverted coordinates)
+  local worldX = -uiX  -- Invert X to show the left/right swap
+  local worldY = uiY * 1.5  -- Exaggerate Y to show the scaling
+  pass:setColor(0, 0, 1, 1)  -- Blue for 3D point
+  pass:circle(worldX, worldY, -0.98, 0.01)  -- Made bigger for visibility
+  
+  -- Draw connecting line
+  pass:setColor(0.5, 0.5, 1, 0.5)  -- Light blue, semi-transparent
+  pass:line(uiX, uiY, -0.99, worldX, worldY, -0.98)
   
   -- Restore view pose
   pass:pop()
 end
 
 function TextureMenu.mousepressed(x, y)
-  -- First check if we're over the panel
+  -- First check if we're over the panel using screen coordinates
   if not TextureMenu.isOverPanel(x, y) then
     return false
   end
   
-  -- Convert screen coordinates to world coordinates
-  local width, height = lovr.system.getWindowDimensions()
-  local worldX = (x / width * 2 - 1) * 0.95  -- Scale to match our coordinate system
-  local worldY = -(y / height * 2 - 1) * 0.95 -- Flip Y and scale
+  -- Convert to UI space
+  local screenX, uiX, uiY = screenToUI(x, y)
+  local texY = uiY * 2 - 1  -- Convert to -1 to 1 range
   
   -- Check face selection buttons
   local buttonY = START_Y + TEXTURE_SIZE + MARGIN
-  if worldY >= buttonY - FACE_BUTTON_HEIGHT/2 and worldY <= buttonY + FACE_BUTTON_HEIGHT/2 then
+  if math.abs(texY - buttonY) <= FACE_BUTTON_HEIGHT/2 then
     for i, face in ipairs(faces) do
       local buttonX = START_X + (i-1) * (FACE_BUTTON_WIDTH + MARGIN) + FACE_BUTTON_WIDTH/2
-      if math.abs(worldX - buttonX) <= FACE_BUTTON_WIDTH/2 then
+      if math.abs(uiX * 2 - 1 - buttonX) <= FACE_BUTTON_WIDTH/2 then
         selectedFace = face
         return true
       end
     end
   end
   
-  -- Check if click is in texture squares area only (not including text)
+  -- Check texture squares area
   local centerX = START_X + TEXTURE_SIZE/2
-  if math.abs(worldX - centerX) <= TEXTURE_SIZE/2 then
+  if math.abs(uiX * 2 - 1 - centerX) <= TEXTURE_SIZE/2 then
+    -- Check "No Texture" option
+    if math.abs(texY - START_Y) <= TEXTURE_SIZE/2 then
+      selectedTexture = 0
+      return true
+    end
+    
+    -- Check regular textures
     for i, _ in ipairs(textures) do
-      -- Check "No Texture" option
-      local noTexY = START_Y
-      if worldY >= noTexY - TEXTURE_SIZE/2 and worldY <= noTexY + TEXTURE_SIZE/2 then
-        selectedTexture = 0
-        return true
-      end
-      
-      -- Check regular textures
-      local texY = START_Y - i * (TEXTURE_SIZE + MARGIN)
-      if worldY >= texY - TEXTURE_SIZE/2 and worldY <= texY + TEXTURE_SIZE/2 then
+      local targetY = START_Y - i * (TEXTURE_SIZE + MARGIN)
+      if math.abs(texY - targetY) <= TEXTURE_SIZE/2 then
         selectedTexture = i
         return true
       end
