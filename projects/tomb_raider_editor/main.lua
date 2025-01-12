@@ -6,6 +6,10 @@ local utils = require('utils')
 local projection
 local world
 local camera
+local lastClickTime = 0
+local lastClickX = 0
+local lastClickY = 0
+local DOUBLE_CLICK_TIME = 0.3 -- seconds between clicks to count as double-click
 
 function lovr.load()
   lovr.graphics.setBackgroundColor(0.05, 0.05, 0.05)
@@ -32,6 +36,7 @@ function lovr.update(dt)
 end
 
 function lovr.mousepressed(x, y, button)
+  local currentTime = lovr.timer.getTime()
   local origin, direction = camera:screenToWorldRay(x, y)
   
   -- Intersect with ground plane (y = 0)
@@ -46,12 +51,24 @@ function lovr.mousepressed(x, y, button)
     -- Use the exact same grid coordinates for placement as preview
     local gx, gy, gz = utils.worldToGrid(hitPoint.x, hitPoint.y, hitPoint.z)
     
-    if button == 1 then -- Left click to place
-      world:placeBlock(gx, gy, gz)  -- Use gy from worldToGrid instead of hardcoding 0.5
-    elseif button == 2 then -- Right click to remove
-      world:removeBlock(gx, gy, gz)
+    if button == 1 then
+      -- Check for double click
+      if currentTime - lastClickTime < DOUBLE_CLICK_TIME 
+         and math.abs(x - lastClickX) < 2 
+         and math.abs(y - lastClickY) < 2 then
+        -- Double click detected - remove block
+        world:removeBlock(gx, gy, gz)
+      else
+        -- Single click - place block
+        world:placeBlock(gx, gy, gz)
+      end
     end
   end
+  
+  -- Update last click info
+  lastClickTime = currentTime
+  lastClickX = x
+  lastClickY = y
 end
 
 function lovr.draw(pass)
@@ -69,7 +86,7 @@ function lovr.draw(pass)
     "Space/Shift - Up/Down\n" ..
     "Arrow Keys - Look around\n" ..
     "Left Click - Place block\n" ..
-    "Right Click - Remove block\n" ..
+    "Double Click - Remove block\n" ..
     "Esc - Exit",
     -0.3, 0.3, -1,
     0.08
