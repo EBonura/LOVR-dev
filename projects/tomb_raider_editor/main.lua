@@ -23,6 +23,8 @@ end
 local blocks = {} -- Store placed blocks: key = "x,y,z", value = true
 local currentFile = "level1.txt" -- Default save file
 local gridSize = 10
+local mouseX, mouseY = 0, 0 -- Track mouse position
+local previewPosition = nil -- Position for preview cube
 
 -- Camera class
 local Camera = {}
@@ -130,13 +132,6 @@ function Camera:update(dt)
   end
 end
 
--- Create camera instance
-local camera = Camera.new()
-
-function lovr.update(dt)
-  camera:update(dt)
-end
-
 -- Helper functions
 local function worldToGrid(x, y, z)
   return math.floor(x + 0.5), math.floor(y + 0.5), math.floor(z + 0.5)
@@ -165,6 +160,32 @@ local function rayPlaneIntersection(rayOrigin, rayDir, planePoint, planeNormal)
     end
   end
   return nil
+end
+
+-- Create camera instance
+local camera = Camera.new()
+
+function lovr.update(dt)
+  camera:update(dt)
+  
+  -- Update mouse position
+  mouseX, mouseY = lovr.system.getMousePosition()
+  
+  -- Calculate preview position
+  local origin, direction = camera:screenToWorldRay(mouseX, mouseY)
+  local hitPoint = rayPlaneIntersection(
+    origin,
+    direction,
+    lovr.math.vec3(0, 0, 0),
+    lovr.math.vec3(0, 1, 0)
+  )
+  
+  if hitPoint then
+    local gx, gy, gz = worldToGrid(hitPoint.x, hitPoint.y, hitPoint.z)
+    previewPosition = {x = gx, y = 0, z = gz} -- Store preview position
+  else
+    previewPosition = nil
+  end
 end
 
 function lovr.mousepressed(x, y, button)
@@ -206,6 +227,14 @@ function lovr.draw(pass)
   for key in pairs(blocks) do
     local x, y, z = string.match(key, "(-?%d+),(-?%d+),(-?%d+)")
     pass:box(tonumber(x), tonumber(y) + 0.5, tonumber(z), 1, 1, 1)
+  end
+  
+  -- Draw preview cube
+  if previewPosition then
+    pass:setColor(1, 1, 1, 0.5) -- Semi-transparent white
+    pass:setWireframe(true)
+    pass:box(previewPosition.x, previewPosition.y + 0.5, previewPosition.z, 1, 1, 1)
+    pass:setWireframe(false)
   end
   
   -- Draw controls help text
