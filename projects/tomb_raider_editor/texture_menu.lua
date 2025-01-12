@@ -3,6 +3,7 @@ local TextureMenu = {}
 -- Store loaded textures and their names
 local textures = {}
 local selectedTexture = 1
+local hoveredTexture = nil
 local TEXTURE_SIZE = 0.15  -- Size of texture preview squares
 local MARGIN = 0.02       -- Space between textures
 local START_X = 0.7       -- Right edge of menu
@@ -29,6 +30,26 @@ function TextureMenu.load()
   end
 end
 
+function TextureMenu.updateHover(x, y)
+  -- Convert screen coordinates to world coordinates
+  local width, height = lovr.system.getWindowDimensions()
+  local worldX = (x / width * 2 - 1) * 0.95  -- Scale to match our coordinate system
+  local worldY = -(y / height * 2 - 1) * 0.95 -- Flip Y and scale
+  
+  -- Check if mouse is over texture squares area
+  local centerX = START_X + TEXTURE_SIZE/2
+  if math.abs(worldX - centerX) <= TEXTURE_SIZE/2 then
+    for i, _ in ipairs(textures) do
+      local texY = START_Y - (i-1) * (TEXTURE_SIZE + MARGIN)
+      if worldY >= texY - TEXTURE_SIZE/2 and worldY <= texY + TEXTURE_SIZE/2 then
+        hoveredTexture = i
+        return
+      end
+    end
+  end
+  hoveredTexture = nil
+end
+
 function TextureMenu.draw(pass)
   -- Save current view pose
   pass:push()
@@ -40,9 +61,15 @@ function TextureMenu.draw(pass)
   for i, tex in ipairs(textures) do
     local y = START_Y - (i-1) * (TEXTURE_SIZE + MARGIN)
     
-    -- Draw selection highlight
+    -- Draw hover highlight in red
+    if i == hoveredTexture then
+      pass:setColor(1, 0, 0, 0.3)
+      pass:plane(START_X + TEXTURE_SIZE/2, y, -1, TEXTURE_SIZE + 0.01, TEXTURE_SIZE + 0.01)
+    end
+    
+    -- Draw selection highlight in white
     if i == selectedTexture then
-      pass:setColor(1, 1, 1, 1)
+      pass:setColor(1, 1, 1, 0.5)
       pass:plane(START_X + TEXTURE_SIZE/2, y, -1, TEXTURE_SIZE + 0.01, TEXTURE_SIZE + 0.01)
     end
     
@@ -75,8 +102,9 @@ function TextureMenu.mousepressed(x, y)
   local worldX = (x / width * 2 - 1) * 0.95  -- Scale to match our coordinate system
   local worldY = -(y / height * 2 - 1) * 0.95 -- Flip Y and scale
   
-  -- Check if click is in texture menu area
-  if worldX >= START_X and worldX <= START_X + TEXTURE_SIZE then
+  -- Check if click is in texture squares area only (not including text)
+  local centerX = START_X + TEXTURE_SIZE/2
+  if math.abs(worldX - centerX) <= TEXTURE_SIZE/2 then
     for i, _ in ipairs(textures) do
       local texY = START_Y - (i-1) * (TEXTURE_SIZE + MARGIN)
       if worldY >= texY - TEXTURE_SIZE/2 and worldY <= texY + TEXTURE_SIZE/2 then

@@ -33,9 +33,10 @@ end
 function lovr.update(dt)
   camera:update(dt)
   
-  -- Update mouse position and preview
+  -- Update mouse position, preview, and texture menu hover
   local mouseX, mouseY = lovr.system.getMousePosition()
   world:updatePreview(camera, mouseX, mouseY)
+  TextureMenu.updateHover(mouseX, mouseY)
 end
 
 function lovr.mousepressed(x, y, button)
