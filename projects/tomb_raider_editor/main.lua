@@ -35,7 +35,7 @@ function lovr.update(dt)
   
   -- Update mouse position, preview, and texture menu hover
   local mouseX, mouseY = lovr.system.getMousePosition()
-  world:updatePreview(camera, mouseX, mouseY)
+  world:updateCursor(camera, mouseX, mouseY)
   TextureMenu.updateHover(mouseX, mouseY)
 end
 

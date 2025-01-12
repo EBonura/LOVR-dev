@@ -8,6 +8,7 @@ function World.new()
   local self = setmetatable({}, World)
   self.blocks = {} -- Store placed blocks: key = "x,y,z", value = true
   self.gridSize = 10
+  self.cursorPosition = nil
   self.previewPosition = nil
   return self
 end
@@ -27,7 +28,7 @@ function World:removeBlock(x, y, z)
   self.blocks[key] = nil
 end
 
-function World:updatePreview(camera, mouseX, mouseY)
+function World:updateCursor(camera, mouseX, mouseY)
   local origin, direction = camera:screenToWorldRay(mouseX, mouseY)
   local hitPoint = utils.rayPlaneIntersection(
     origin,
@@ -38,8 +39,17 @@ function World:updatePreview(camera, mouseX, mouseY)
   
   if hitPoint then
     local gx, gy, gz = utils.worldToGrid(hitPoint.x, hitPoint.y, hitPoint.z)
-    self.previewPosition = {x = gx, y = 0.5, z = gz}
+    self.cursorPosition = {x = gx, y = 0.5, z = gz}
+    
+    -- Only show preview if there's no block at this position
+    local key = utils.getBlockKey(gx, gy, gz)
+    if not self.blocks[key] then
+      self.previewPosition = self.cursorPosition
+    else
+      self.previewPosition = nil
+    end
   else
+    self.cursorPosition = nil
     self.previewPosition = nil
   end
 end
@@ -62,12 +72,20 @@ function World:draw(pass)
   end
   pass:setMaterial()
   
-  -- Draw preview cube
+  -- Draw preview cube with current texture
   if self.previewPosition then
-    pass:setColor(1, 1, 1, 0.5) -- Semi-transparent white
+    pass:setColor(1, 1, 1, 0.5)
     pass:setMaterial(TextureMenu.getSelectedTexture())
     pass:box(self.previewPosition.x, self.previewPosition.y, self.previewPosition.z, 1, 1, 1)
     pass:setMaterial()
+  end
+  
+  -- Draw cursor wireframe (red)
+  if self.cursorPosition then
+    pass:setColor(1, 0, 0, 1)
+    pass:setWireframe(true)
+    pass:box(self.cursorPosition.x, self.cursorPosition.y, self.cursorPosition.z, 1.01, 1.01, 1.01)
+    pass:setWireframe(false)
   end
 end
 
