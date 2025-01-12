@@ -52,8 +52,8 @@ function World:updateCursor(camera, mouseX, mouseY)
     local gx, gy, gz = utils.worldToGrid(hitPoint.x, hitPoint.y, hitPoint.z)
     self.cursorPosition = {x = gx, y = self.gridHeight + 0.5, z = gz}
     
-    -- Only show preview if there's no block at this position
-    local key = utils.getBlockKey(gx, gy, gz)
+    -- Only show preview if there's no block at this position at the current grid height
+    local key = utils.getBlockKey(gx, self.gridHeight + 0.5, gz)
     if not self.blocks[key] then
       self.previewPosition = self.cursorPosition
     else
