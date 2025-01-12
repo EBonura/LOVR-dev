@@ -44,7 +44,7 @@ function World:updateCursor(camera, mouseX, mouseY)
   local hitPoint = utils.rayPlaneIntersection(
     origin,
     direction,
-    lovr.math.vec3(0, self.gridHeight, 0),
+    lovr.math.vec3(0.5, self.gridHeight, 0.5),
     lovr.math.vec3(0, 1, 0)
   )
   
@@ -68,7 +68,7 @@ end
 function World:draw(pass)
   -- Draw grid lines
   pass:setColor(1, 1, 1, 0.3)
-  pass:plane(0, self.gridHeight, 0, 20, 20, -math.pi / 2, 1, 0, 0, 'line', 20, 20)
+  pass:plane(0.5, self.gridHeight, 0.5, 20, 20, -math.pi / 2, 1, 0, 0, 'line', 20, 20)
   
   -- Draw blocks
   pass:setColor(1, 1, 1)
