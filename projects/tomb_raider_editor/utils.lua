@@ -2,7 +2,8 @@ local utils = {}
 
 -- Convert world coordinates to grid coordinates (centers)
 function utils.worldToGrid(x, y, z)
-  return math.floor(x + 0.5), math.floor(y), math.floor(z + 0.5)
+  -- Consistently center all coordinates including y
+  return math.floor(x + 0.5), 0.5, math.floor(z + 0.5)
 end
 
 -- Get unique key for block position

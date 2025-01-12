@@ -43,12 +43,13 @@ function lovr.mousepressed(x, y, button)
   )
   
   if hitPoint then
+    -- Use the exact same grid coordinates for placement as preview
     local gx, gy, gz = utils.worldToGrid(hitPoint.x, hitPoint.y, hitPoint.z)
     
     if button == 1 then -- Left click to place
-      world:placeBlock(gx, 0.5, gz)
+      world:placeBlock(gx, gy, gz)  -- Use gy from worldToGrid instead of hardcoding 0.5
     elseif button == 2 then -- Right click to remove
-      world:removeBlock(gx, 0.5, gz)
+      world:removeBlock(gx, gy, gz)
     end
   end
 end

@@ -12,8 +12,12 @@ function World.new()
 end
 
 function World:placeBlock(x, y, z)
-  local key = utils.getBlockKey(x, y, z)
-  self.blocks[key] = true
+  -- Store the exact same coordinates we use for preview
+  self.blocks[utils.getBlockKey(x, y, z)] = {
+    x = x,
+    y = y,
+    z = z
+  }
 end
 
 function World:removeBlock(x, y, z)
@@ -49,9 +53,9 @@ function World:draw(pass)
   
   -- Draw blocks
   pass:setColor(1, 0.7, 0.3)
-  for key in pairs(self.blocks) do
-    local x, y, z = string.match(key, "(-?%d+),(-?%d+),(-?%d+)")
-    pass:box(tonumber(x), tonumber(y), tonumber(z), 1, 1, 1)
+  for key, block in pairs(self.blocks) do
+    -- Use stored coordinates directly to match preview position exactly
+    pass:box(block.x, block.y, block.z, 1, 1, 1)
   end
   
   -- Draw preview cube
