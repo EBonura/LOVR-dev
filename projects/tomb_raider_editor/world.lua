@@ -1,4 +1,5 @@
 local utils = require('utils')
+local TextureMenu = require('texture_menu')
 
 local World = {}
 World.__index = World
@@ -12,11 +13,12 @@ function World.new()
 end
 
 function World:placeBlock(x, y, z)
-  -- Store the exact same coordinates we use for preview
+  -- Store the exact same coordinates we use for preview along with the current texture
   self.blocks[utils.getBlockKey(x, y, z)] = {
     x = x,
     y = y,
-    z = z
+    z = z,
+    texture = TextureMenu.getSelectedTexture()
   }
 end
 
@@ -52,18 +54,20 @@ function World:draw(pass)
   pass:plane(0, 0.001, 0, 20, 20, -math.pi / 2, 1, 0, 0, 'line', 20, 20)
   
   -- Draw blocks
-  pass:setColor(1, 0.7, 0.3)
+  pass:setColor(1, 1, 1)
   for key, block in pairs(self.blocks) do
     -- Use stored coordinates directly to match preview position exactly
+    pass:setMaterial(block.texture)
     pass:box(block.x, block.y, block.z, 1, 1, 1)
   end
+  pass:setMaterial()
   
   -- Draw preview cube
   if self.previewPosition then
     pass:setColor(1, 1, 1, 0.5) -- Semi-transparent white
-    pass:setWireframe(true)
+    pass:setMaterial(TextureMenu.getSelectedTexture())
     pass:box(self.previewPosition.x, self.previewPosition.y, self.previewPosition.z, 1, 1, 1)
-    pass:setWireframe(false)
+    pass:setMaterial()
   end
 end
 

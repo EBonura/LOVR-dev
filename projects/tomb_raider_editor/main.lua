@@ -42,8 +42,13 @@ function lovr.mousepressed(x, y, button)
   local currentTime = lovr.timer.getTime()
   if button == 1 then
     -- First check if the click is handled by the texture menu
-    menuHandledClick = TextureMenu.mousepressed(x, y)
-    if menuHandledClick then return end
+    if TextureMenu.mousepressed(x, y) then
+      -- Update last click info even if menu handled it
+      lastClickTime = currentTime
+      lastClickX = x
+      lastClickY = y
+      return
+    end
     
     -- If menu didn't handle the click, proceed with block placement/removal
     local origin, direction = camera:screenToWorldRay(x, y)
