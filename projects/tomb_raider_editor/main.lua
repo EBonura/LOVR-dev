@@ -88,8 +88,13 @@ function lovr.draw(pass)
     "Left Click - Place block\n" ..
     "Double Click - Remove block\n" ..
     "Esc - Exit",
-    -0.3, 0.3, -1,
-    0.08
+    -0.95, 0.7, -1, -- x, y, z position
+    0.04, -- scale
+    0, -- angle
+    0, 1, 0, -- rotation axis
+    0, -- wrap
+    'left', -- horizontal alignment
+    'top' -- vertical alignment
   )
 end
 
