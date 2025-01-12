@@ -18,12 +18,24 @@ end
 
 function World:placeBlock(x, y, z)
   -- Store the exact same coordinates we use for preview along with the current texture
-  self.blocks[utils.getBlockKey(x, y, z)] = {
+  local key = utils.getBlockKey(x, y, z)
+  local block = self.blocks[key] or {
     x = x,
     y = y,
     z = z,
-    texture = TextureMenu.getSelectedTexture()
+    textures = {
+      front = nil,
+      back = nil,
+      left = nil,
+      right = nil,
+      top = nil,
+      bottom = nil
+    }
   }
+  
+  -- Update only the selected face's texture
+  block.textures[TextureMenu.getSelectedFace()] = TextureMenu.getSelectedTexture()
+  self.blocks[key] = block
 end
 
 function World:removeBlock(x, y, z)
@@ -74,17 +86,92 @@ function World:draw(pass)
   pass:setColor(1, 1, 1)
   for key, block in pairs(self.blocks) do
     -- Use stored coordinates directly to match preview position exactly
-    pass:setMaterial(block.texture)
-    pass:box(block.x, block.y, block.z, 1, 1, 1)
+    local x, y, z = block.x, block.y, block.z
+    
+    -- Front face (facing positive Z)
+    if block.textures.front then
+      pass:setMaterial(block.textures.front)
+      pass:plane(x, y, z + 0.5, 1, 1)
+    end
+    
+    -- Back face (facing negative Z)
+    if block.textures.back then
+      pass:setMaterial(block.textures.back)
+      pass:plane(x, y, z - 0.5, 1, 1, math.pi, 0, 1, 0)
+    end
+    
+    -- Left face (facing negative X)
+    if block.textures.left then
+      pass:setMaterial(block.textures.left)
+      pass:plane(x - 0.5, y, z, 1, 1, math.pi/2, 0, 1, 0)
+    end
+    
+    -- Right face (facing positive X)
+    if block.textures.right then
+      pass:setMaterial(block.textures.right)
+      pass:plane(x + 0.5, y, z, 1, 1, -math.pi/2, 0, 1, 0)
+    end
+    
+    -- Top face (facing positive Y)
+    if block.textures.top then
+      pass:setMaterial(block.textures.top)
+      pass:plane(x, y + 0.5, z, 1, 1, -math.pi/2, 1, 0, 0)
+    end
+    
+    -- Bottom face (facing negative Y)
+    if block.textures.bottom then
+      pass:setMaterial(block.textures.bottom)
+      pass:plane(x, y - 0.5, z, 1, 1, math.pi/2, 1, 0, 0)
+    end
   end
   pass:setMaterial()
   
   -- Draw preview cube with current texture
   if self.previewPosition then
     pass:setColor(1, 1, 1, 0.5)
-    pass:setMaterial(TextureMenu.getSelectedTexture())
-    pass:box(self.previewPosition.x, self.previewPosition.y, self.previewPosition.z, 1, 1, 1)
-    pass:setMaterial()
+    local x, y, z = self.previewPosition.x, self.previewPosition.y, self.previewPosition.z
+    local selectedFace = TextureMenu.getSelectedFace()
+    local texture = TextureMenu.getSelectedTexture()
+    
+    -- Draw semi-transparent faces for all sides
+    pass:setColor(0.5, 0.5, 0.5, 0.2)
+    -- Front face (facing positive Z)
+    pass:plane(x, y, z + 0.5, 1, 1)
+    -- Back face (facing negative Z)
+    pass:plane(x, y, z - 0.5, 1, 1, math.pi, 0, 1, 0)
+    -- Left face (facing negative X)
+    pass:plane(x - 0.5, y, z, 1, 1, math.pi/2, 0, 1, 0)
+    -- Right face (facing positive X)
+    pass:plane(x + 0.5, y, z, 1, 1, -math.pi/2, 0, 1, 0)
+    -- Top face (facing positive Y)
+    pass:plane(x, y + 0.5, z, 1, 1, -math.pi/2, 1, 0, 0)
+    -- Bottom face (facing negative Y)
+    pass:plane(x, y - 0.5, z, 1, 1, math.pi/2, 1, 0, 0)
+    
+    -- Highlight selected face with texture or solid color
+    pass:setColor(1, 1, 1, 0.5)
+    if texture then
+      pass:setMaterial(texture)
+    end
+    
+    -- Draw the selected face
+    if selectedFace == 'front' then
+      pass:plane(x, y, z + 0.5, 1, 1)
+    elseif selectedFace == 'back' then
+      pass:plane(x, y, z - 0.5, 1, 1, math.pi, 0, 1, 0)
+    elseif selectedFace == 'left' then
+      pass:plane(x - 0.5, y, z, 1, 1, math.pi/2, 0, 1, 0)
+    elseif selectedFace == 'right' then
+      pass:plane(x + 0.5, y, z, 1, 1, -math.pi/2, 0, 1, 0)
+    elseif selectedFace == 'top' then
+      pass:plane(x, y + 0.5, z, 1, 1, -math.pi/2, 1, 0, 0)
+    elseif selectedFace == 'bottom' then
+      pass:plane(x, y - 0.5, z, 1, 1, math.pi/2, 1, 0, 0)
+    end
+    
+    if texture then
+      pass:setMaterial()
+    end
   end
   
   -- Draw cursor wireframe (red)
