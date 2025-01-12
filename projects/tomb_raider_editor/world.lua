@@ -8,8 +8,11 @@ function World.new()
   local self = setmetatable({}, World)
   self.blocks = {} -- Store placed blocks: key = "x,y,z", value = true
   self.gridSize = 10
+  self.gridHeight = 0 -- Current height of the placement grid
   self.cursorPosition = nil
   self.previewPosition = nil
+  self.lastHeightChange = 0 -- Timer for height adjustment
+  self.heightChangeDelay = 0.2 -- Delay between height changes (in seconds)
   return self
 end
 
@@ -28,18 +31,26 @@ function World:removeBlock(x, y, z)
   self.blocks[key] = nil
 end
 
+function World:adjustGridHeight(delta)
+  local currentTime = lovr.timer.getTime()
+  if currentTime - self.lastHeightChange >= self.heightChangeDelay then
+    self.gridHeight = self.gridHeight + delta
+    self.lastHeightChange = currentTime
+  end
+end
+
 function World:updateCursor(camera, mouseX, mouseY)
   local origin, direction = camera:screenToWorldRay(mouseX, mouseY)
   local hitPoint = utils.rayPlaneIntersection(
     origin,
     direction,
-    lovr.math.vec3(0, 0, 0),
+    lovr.math.vec3(0, self.gridHeight, 0),
     lovr.math.vec3(0, 1, 0)
   )
   
   if hitPoint then
     local gx, gy, gz = utils.worldToGrid(hitPoint.x, hitPoint.y, hitPoint.z)
-    self.cursorPosition = {x = gx, y = 0.5, z = gz}
+    self.cursorPosition = {x = gx, y = self.gridHeight + 0.5, z = gz}
     
     -- Only show preview if there's no block at this position
     local key = utils.getBlockKey(gx, gy, gz)
@@ -55,13 +66,9 @@ function World:updateCursor(camera, mouseX, mouseY)
 end
 
 function World:draw(pass)
-  -- Draw grid
-  -- Draw a solid dark plane first
-  pass:setColor(0.1, 0.1, 0.12)
-  pass:plane(0, 0, 0, 20, 20, -math.pi / 2, 1, 0, 0)
-  -- Draw grid lines on top
-  pass:setColor(0.2, 0.2, 0.25)
-  pass:plane(0, 0.001, 0, 20, 20, -math.pi / 2, 1, 0, 0, 'line', 20, 20)
+  -- Draw grid lines
+  pass:setColor(1, 1, 1, 0.3)
+  pass:plane(0, self.gridHeight, 0, 20, 20, -math.pi / 2, 1, 0, 0, 'line', 20, 20)
   
   -- Draw blocks
   pass:setColor(1, 1, 1)

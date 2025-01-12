@@ -33,6 +33,13 @@ end
 function lovr.update(dt)
   camera:update(dt)
   
+  -- Grid height controls
+  if lovr.system.isKeyDown('r') then
+    world:adjustGridHeight(1)
+  elseif lovr.system.isKeyDown('f') then
+    world:adjustGridHeight(-1)
+  end
+  
   -- Update mouse position, preview, and texture menu hover
   local mouseX, mouseY = lovr.system.getMousePosition()
   
@@ -60,11 +67,11 @@ function lovr.mousepressed(x, y, button)
     -- If menu didn't handle the click, proceed with block placement/removal
     local origin, direction = camera:screenToWorldRay(x, y)
     
-    -- Intersect with ground plane (y = 0)
+    -- Intersect with ground plane at current grid height
     local hitPoint = utils.rayPlaneIntersection(
       origin,
       direction,
-      lovr.math.vec3(0, 0, 0),
+      lovr.math.vec3(0, world.gridHeight, 0),
       lovr.math.vec3(0, 1, 0)
     )
     
@@ -77,10 +84,10 @@ function lovr.mousepressed(x, y, button)
          and math.abs(x - lastClickX) < 2 
          and math.abs(y - lastClickY) < 2 then
         -- Double click detected - remove block
-        world:removeBlock(gx, gy, gz)
+        world:removeBlock(gx, world.gridHeight, gz)
       else
         -- Single click - place block
-        world:placeBlock(gx, gy, gz)
+        world:placeBlock(gx, world.gridHeight, gz)
       end
     end
   end
@@ -108,6 +115,7 @@ function lovr.draw(pass)
     "WASD - Move\n" ..
     "E/Q - Up/Down\n" ..
     "Arrow Keys - Look around\n" ..
+    "R/F - Adjust grid height\n" ..
     "Left Click - Place block\n" ..
     "Double Click - Remove block\n" ..
     "Esc - Exit",
