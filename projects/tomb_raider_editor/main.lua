@@ -39,13 +39,13 @@ function lovr.update(dt)
 end
 
 function lovr.mousepressed(x, y, button)
+  local currentTime = lovr.timer.getTime()
   if button == 1 then
     -- First check if the click is handled by the texture menu
     menuHandledClick = TextureMenu.mousepressed(x, y)
     if menuHandledClick then return end
     
     -- If menu didn't handle the click, proceed with block placement/removal
-    local currentTime = lovr.timer.getTime()
     local origin, direction = camera:screenToWorldRay(x, y)
     
     -- Intersect with ground plane (y = 0)
