@@ -57,8 +57,8 @@ function Camera:update(dt)
   if lovr.system.isKeyDown('d') then dx = 1 end
   
   -- Up/Down
-  if lovr.system.isKeyDown('space') then dy = 1 end
-  if lovr.system.isKeyDown('lshift') then dy = -1 end
+  if lovr.system.isKeyDown('e') then dy = 1 end
+  if lovr.system.isKeyDown('q') then dy = -1 end
   
   -- Camera rotation
   if lovr.system.isKeyDown('left') then self.yaw = self.yaw + dt end

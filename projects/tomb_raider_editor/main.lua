@@ -1,11 +1,13 @@
 local Camera = require('camera')
 local World = require('world')
 local utils = require('utils')
+local TextureMenu = require('texture_menu')
 
 -- Projection matrix for mouse picking
 local projection
 local world
 local camera
+local menuHandledClick = false
 local lastClickTime = 0
 local lastClickX = 0
 local lastClickY = 0
@@ -20,6 +22,7 @@ function lovr.load()
   -- Initialize world and camera
   world = World.new()
   camera = Camera.new()
+  TextureMenu.load()
 end
 
 function lovr.resize(width, height)
@@ -36,22 +39,27 @@ function lovr.update(dt)
 end
 
 function lovr.mousepressed(x, y, button)
-  local currentTime = lovr.timer.getTime()
-  local origin, direction = camera:screenToWorldRay(x, y)
-  
-  -- Intersect with ground plane (y = 0)
-  local hitPoint = utils.rayPlaneIntersection(
-    origin,
-    direction,
-    lovr.math.vec3(0, 0, 0),
-    lovr.math.vec3(0, 1, 0)
-  )
-  
-  if hitPoint then
-    -- Use the exact same grid coordinates for placement as preview
-    local gx, gy, gz = utils.worldToGrid(hitPoint.x, hitPoint.y, hitPoint.z)
+  if button == 1 then
+    -- First check if the click is handled by the texture menu
+    menuHandledClick = TextureMenu.mousepressed(x, y)
+    if menuHandledClick then return end
     
-    if button == 1 then
+    -- If menu didn't handle the click, proceed with block placement/removal
+    local currentTime = lovr.timer.getTime()
+    local origin, direction = camera:screenToWorldRay(x, y)
+    
+    -- Intersect with ground plane (y = 0)
+    local hitPoint = utils.rayPlaneIntersection(
+      origin,
+      direction,
+      lovr.math.vec3(0, 0, 0),
+      lovr.math.vec3(0, 1, 0)
+    )
+    
+    if hitPoint then
+      -- Use the exact same grid coordinates for placement as preview
+      local gx, gy, gz = utils.worldToGrid(hitPoint.x, hitPoint.y, hitPoint.z)
+      
       -- Check for double click
       if currentTime - lastClickTime < DOUBLE_CLICK_TIME 
          and math.abs(x - lastClickX) < 2 
@@ -77,13 +85,16 @@ function lovr.draw(pass)
   -- Draw world
   world:draw(pass)
   
+  -- Draw texture menu
+  TextureMenu.draw(pass)
+  
   -- Draw controls help text
   pass:setViewPose(1, lovr.math.vec3(), lovr.math.quat())
   pass:setColor(1, 1, 1)
   pass:text(
     "Controls:\n" ..
     "WASD - Move\n" ..
-    "Space/Shift - Up/Down\n" ..
+    "E/Q - Up/Down\n" ..
     "Arrow Keys - Look around\n" ..
     "Left Click - Place block\n" ..
     "Double Click - Remove block\n" ..
