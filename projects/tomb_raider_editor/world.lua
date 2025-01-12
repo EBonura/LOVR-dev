@@ -175,10 +175,15 @@ function World:draw(pass)
       pass:setMaterial()
     end
   end
-  -- Draw hit point dot (red)
+  
+end
+
+function World:drawHitPoint(pass)
   if self.hitPoint then
     pass:setColor(1, 0, 0, 1)
+    pass:setDepthTest('none')  -- Disable depth testing to always show on top
     pass:sphere(self.hitPoint.x, self.hitPoint.y, self.hitPoint.z, 0.05)
+    pass:setDepthTest('less')  -- Restore default depth testing
   end
 end
 

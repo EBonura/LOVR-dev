@@ -127,6 +127,10 @@ function lovr.draw(pass)
     'left', -- horizontal alignment
     'top' -- vertical alignment
   )
+  
+  -- Draw hit point at the very end, after everything else
+  pass:setViewPose(1, camera.position, camera:getRotation())
+  world:drawHitPoint(pass)
 end
 
 function lovr.keypressed(key)
