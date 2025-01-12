@@ -6,8 +6,9 @@ local selectedTexture = 1
 local hoveredTexture = nil
 local TEXTURE_SIZE = 0.15  -- Size of texture preview squares
 local MARGIN = 0.02       -- Space between textures
-local START_X = 0.7       -- Right edge of menu
+local START_X = 0.7       -- Position textures within the 20% panel
 local START_Y = 0.5       -- Top edge of menu
+local PANEL_WIDTH = 0.4   -- Width of the right panel (20% of screen = 0.4 in normalized coords)
 
 function TextureMenu.load()
   -- Load all textures from the Textures directory
@@ -50,12 +51,21 @@ function TextureMenu.updateHover(x, y)
   hoveredTexture = nil
 end
 
+function TextureMenu.isOverPanel(x, y)
+  local width = lovr.system.getWindowDimensions()
+  return x / width >= 0.8  -- Check if mouse is in right 20% of screen (80% mark)
+end
+
 function TextureMenu.draw(pass)
   -- Save current view pose
   pass:push()
   
   -- Reset view for 2D drawing
   pass:setViewPose(1, lovr.math.vec3(), lovr.math.quat())
+  
+  -- Draw background panel
+  pass:setColor(0.2, 0.2, 0.2, 1)
+  pass:plane(0.8, 0, -1, 0.4, 2) -- 20% width panel (0.4 in normalized coords)
   
   -- Draw each texture
   for i, tex in ipairs(textures) do
@@ -97,6 +107,11 @@ function TextureMenu.draw(pass)
 end
 
 function TextureMenu.mousepressed(x, y)
+  -- First check if we're over the panel
+  if not TextureMenu.isOverPanel(x, y) then
+    return false
+  end
+  
   -- Convert screen coordinates to world coordinates
   local width, height = lovr.system.getWindowDimensions()
   local worldX = (x / width * 2 - 1) * 0.95  -- Scale to match our coordinate system

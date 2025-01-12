@@ -35,16 +35,22 @@ function lovr.update(dt)
   
   -- Update mouse position, preview, and texture menu hover
   local mouseX, mouseY = lovr.system.getMousePosition()
-  world:updateCursor(camera, mouseX, mouseY)
+  
+  -- Only update world cursor when not over texture panel
+  if not TextureMenu.isOverPanel(mouseX, mouseY) then
+    world:updateCursor(camera, mouseX, mouseY)
+  end
+  
   TextureMenu.updateHover(mouseX, mouseY)
 end
 
 function lovr.mousepressed(x, y, button)
   local currentTime = lovr.timer.getTime()
   if button == 1 then
-    -- First check if the click is handled by the texture menu
-    if TextureMenu.mousepressed(x, y) then
-      -- Update last click info even if menu handled it
+    -- First check if we're over the texture panel
+    if TextureMenu.isOverPanel(x, y) then
+      TextureMenu.mousepressed(x, y)
+      -- Update last click info
       lastClickTime = currentTime
       lastClickX = x
       lastClickY = y
