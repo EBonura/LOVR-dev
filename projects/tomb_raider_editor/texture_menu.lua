@@ -1,5 +1,9 @@
 local TextureMenu = {}
 
+-- Current mouse position in world coordinates
+local currentMouseX = 0
+local currentMouseY = 0
+
 -- Store loaded textures and their names
 local textures = {}
 local selectedTexture = 1
@@ -40,6 +44,10 @@ function TextureMenu.updateHover(x, y)
   local width, height = lovr.system.getWindowDimensions()
   local worldX = (x / width * 2 - 1) * 0.95  -- Scale to match our coordinate system
   local worldY = -(y / height * 2 - 1) * 0.95 -- Flip Y and scale
+  
+  -- Update current mouse position
+  currentMouseX = worldX
+  currentMouseY = worldY
   
   -- Check if mouse is over texture squares area
   local centerX = START_X + TEXTURE_SIZE/2
@@ -154,6 +162,12 @@ function TextureMenu.draw(pass)
       'middle' -- Vertical alignment
     )
   end
+  
+  -- Draw cursor indicator
+  pass:setColor(1, 0, 0, 1)  -- Red color
+  pass:circle(currentMouseX, currentMouseY, -0.99, 0.005)  -- Small circle at cursor position
+  pass:setColor(1, 0, 0, 0.3)  -- Transparent red
+  pass:circle(currentMouseX, currentMouseY, -0.99, 0.01)   -- Larger halo effect
   
   -- Restore view pose
   pass:pop()
