@@ -98,7 +98,7 @@ function lovr.draw(pass)
   
   pass:pop()
   
-  -- For 2D UI, apply the same scaling as the 3D ray for consistency
+  -- For 2D UI, use the same scaling as the ray direction before normalization
   local uiX = nx * tanFov * aspect
   local uiY = ny * tanFov
   
