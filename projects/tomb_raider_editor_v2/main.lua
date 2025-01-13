@@ -3,7 +3,9 @@ local camera = {
   rotation = lovr.math.newQuat(),
   speed = 3,
   mouseDown = false,
-  sensitivity = 0.002
+  sensitivity = 0.002, -- Reduced from 0.002
+  lastx = 0,
+  lasty = 0
 }
 
 function lovr.load()
@@ -14,12 +16,17 @@ function lovr.update(dt)
   -- Camera rotation with mouse input
   if lovr.system.isMouseDown(2) then -- Right mouse button
     local mx, my = lovr.system.getMousePosition()
-    local lastmx, lastmy = mx - lovr.system.getMouseX(), my - lovr.system.getMouseY()
-    local dx = (mx - lastmx) * camera.sensitivity
-    local dy = (my - lastmy) * camera.sensitivity
     
-    -- Create fresh temporary vectors each frame
-    camera.rotation = camera.rotation:mul(lovr.math.quat(-dx, 0, 1, 0)):mul(lovr.math.quat(-dy, 1, 0, 0))
+    if camera.mouseDown then
+      -- Calculate delta from last position instead of GetMouseX/Y
+      local dx = (mx - camera.lastx) * camera.sensitivity 
+      local dy = (my - camera.lasty) * camera.sensitivity
+      camera.rotation = camera.rotation:mul(lovr.math.quat(-dx, 0, 1, 0)):mul(lovr.math.quat(-dy, 1, 0, 0))
+    end
+
+    -- Store current position for next frame
+    camera.lastx = mx
+    camera.lasty = my
   end
 
   -- WASD movement
@@ -59,6 +66,8 @@ function lovr.mousepressed(x, y, button)
   -- Only rotate camera when right-clicking in the 3D view area (left 80% of screen)
   if button == 2 and x < lovr.system.getWindowWidth() * 0.8 then
     camera.mouseDown = true
+    -- Initialize last position when starting to drag
+    camera.lastx, camera.lasty = lovr.system.getMousePosition()
   end
 end
 
