@@ -12,6 +12,7 @@ local scene = {
 function lovr.load()
     scene.camera = Camera:new()
     scene.world = World:new(scene.camera)
+    scene.camera:setWorld(scene.world)  -- Give camera access to world
     scene.ui = UI:new(scene.camera)
 end
 
@@ -19,13 +20,6 @@ function lovr.update(dt)
     scene.camera:update(dt)
 end
 
-function lovr.keypressed(key)
-    if key == 'r' then  -- R key to move grid up
-        scene.world:shiftGridUp()
-    elseif key == 'f' then  -- F key to move grid down
-        scene.world:shiftGridDown()
-    end
-end
 
 function lovr.draw(pass)
     -- First draw 3D scene

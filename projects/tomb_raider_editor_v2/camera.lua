@@ -8,7 +8,8 @@ local Camera = {
   lasty = 0,
   yaw = 0,
   pitch = 0,
-  currentGridCell = {x = 0, y = 0, z = 0}  -- Added y coordinate
+  currentGridCell = {x = 0, y = 0, z = 0},
+  world = nil
 }
 
 function Camera:new()
@@ -16,10 +17,8 @@ function Camera:new()
   return camera
 end
 
-function Camera:setCurrentGridCell(x, y, z)
-  self.currentGridCell.x = x
-  self.currentGridCell.y = y
-  self.currentGridCell.z = z
+function Camera:setWorld(world)
+  self.world = world
 end
 
 function Camera:update(dt)
@@ -54,11 +53,27 @@ function Camera:update(dt)
   if lovr.system.isKeyDown('q') then dy = -1 end
   if lovr.system.isKeyDown('e') then dy = 1 end
   
+  -- Grid movement
+  if self.world then
+    if lovr.system.isKeyDown('r') then
+      self.world:shiftGridUp()
+    end
+    if lovr.system.isKeyDown('f') then
+      self.world:shiftGridDown()
+    end
+  end
+  
   -- Apply movement
   local movement = lovr.math.vec3(dx, dy, dz)
   movement:mul(dt * self.speed)
   movement:rotate(self.rotation)
   self.position:add(movement)
+end
+
+function Camera:setCurrentGridCell(x, y, z)
+  self.currentGridCell.x = x
+  self.currentGridCell.y = y
+  self.currentGridCell.z = z
 end
 
 function Camera:mousepressed(x, y, button)
@@ -81,7 +96,7 @@ function Camera:getDebugText()
     "Position: %.2f, %.2f, %.2f\n" ..
     "Yaw: %.2f\n" ..
     "Pitch: %.2f\n" ..
-    "Grid Cell: %d, %d, %d",  -- Added Y coordinate to display
+    "Grid Cell: %d, %d, %d",
     self.position.x, self.position.y, self.position.z,
     self.yaw,
     self.pitch,
