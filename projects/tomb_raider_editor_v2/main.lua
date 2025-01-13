@@ -1,61 +1,33 @@
-local camera = {
-  position = lovr.math.newVec3(0, 2, -4),
-  rotation = lovr.math.newQuat(),
-  speed = 3,
-  mouseDown = false,
-  sensitivity = 0.002,
-  lastx = 0,
-  lasty = 0,
-  -- Add separate angles for yaw and pitch
-  yaw = 0,
-  pitch = 0
-}
+local Camera = require('camera')
+local camera = Camera:new()
 
 function lovr.load()
   -- We don't need any mouse initialization - it's handled by lovr.system
 end
 
 function lovr.update(dt)
-  -- Camera rotation with mouse input
-  if lovr.system.isMouseDown(2) then -- Right mouse button
-    local mx, my = lovr.system.getMousePosition()
-    
-    if camera.mouseDown then
-      local dx = (mx - camera.lastx) * camera.sensitivity 
-      local dy = (my - camera.lasty) * camera.sensitivity
-      
-      -- Update yaw and pitch angles
-      camera.yaw = camera.yaw - dx
-      camera.pitch = math.max(-math.pi/2, math.min(math.pi/2, camera.pitch - dy))
-      
-      -- Set rotation directly from angles using a single new quaternion
-      camera.rotation = lovr.math.newQuat()
-      camera.rotation:mul(lovr.math.quat(camera.yaw, 0, 1, 0))
-      camera.rotation:mul(lovr.math.quat(camera.pitch, 1, 0, 0))
-    end
-    
-    camera.lastx = mx
-    camera.lasty = my
-  end
-
-  -- WASD movement
-  local dx, dy, dz = 0, 0, 0
-  if lovr.system.isKeyDown('w') then dz = -1 end
-  if lovr.system.isKeyDown('s') then dz = 1 end
-  if lovr.system.isKeyDown('a') then dx = -1 end
-  if lovr.system.isKeyDown('d') then dx = 1 end
-  if lovr.system.isKeyDown('q') then dy = -1 end
-  if lovr.system.isKeyDown('e') then dy = 1 end
-  
-  -- Apply movement
-  local movement = lovr.math.vec3(dx, dy, dz)
-  movement:mul(dt * camera.speed)
-  movement:rotate(camera.rotation)
-  camera.position:add(movement)
+  camera:update(dt)
 end
 
 function lovr.draw(pass)
   -- Set camera
+  pass:setViewPose(1, camera.position, camera.rotation)
+  
+  -- Draw debug info (using 2D overlay)
+  pass:setViewPose(1, lovr.math.vec3(0, 0, 0), lovr.math.quat())
+  pass:setColor(1, 1, 1, 1)
+  pass:text(
+    camera:getDebugText(),
+    -1.1, 0.6, -1, -- x, y, z position (matching original positioning)
+    0.04, -- scale
+    0, -- angle
+    0, 1, 0, -- rotation axis
+    0, -- wrap
+    'left', -- horizontal alignment
+    'top' -- vertical alignment
+  )
+  
+  -- Reset view pose for 3D scene
   pass:setViewPose(1, camera.position, camera.rotation)
   
   -- Draw grid
@@ -82,20 +54,9 @@ function lovr.draw(pass)
 end
 
 function lovr.mousepressed(x, y, button)
-  -- Calculate panel boundary in screen coordinates
-  local width = lovr.system.getWindowWidth()
-  local panelStart = width * 0.8
-  
-  -- Only rotate camera when right-clicking in the 3D view area
-  if button == 2 and x < panelStart then
-    camera.mouseDown = true
-    -- Initialize last position when starting to drag
-    camera.lastx, camera.lasty = lovr.system.getMousePosition()
-  end
+  camera:mousepressed(x, y, button)
 end
 
 function lovr.mousereleased(x, y, button)
-  if button == 2 then
-    camera.mouseDown = false
-  end
+  camera:mousereleased(x, y, button)
 end
