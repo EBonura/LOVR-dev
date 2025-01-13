@@ -11,7 +11,7 @@ local scene = {
 
 function lovr.load()
     scene.camera = Camera:new()
-    scene.world = World:new()
+    scene.world = World:new(scene.camera)
     scene.ui = UI:new(scene.camera)
 end
 

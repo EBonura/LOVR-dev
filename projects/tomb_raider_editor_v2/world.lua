@@ -1,9 +1,11 @@
 local World = {
     gridSize = 50,  -- Size of the ground grid
+    camera = nil    -- Reference to camera
 }
 
-function World:new()
+function World:new(camera)
     local world = setmetatable({}, { __index = World })
+    world.camera = camera
     return world
 end
 
@@ -18,6 +20,11 @@ function World:drawCursorIntersection(pass, t, intersection)
         -- Round intersection to nearest grid unit
         local gridX = math.floor(intersection.x + 0.5)
         local gridZ = math.floor(intersection.z + 0.5)
+        
+        -- Update camera with current grid cell
+        if self.camera then
+            self.camera:setCurrentGridCell(gridX, gridZ)
+        end
         
         -- Draw wireframe cube
         pass:setColor(1, 1, 1, 1)

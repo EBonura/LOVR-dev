@@ -7,12 +7,18 @@ local Camera = {
   lastx = 0,
   lasty = 0,
   yaw = 0,
-  pitch = 0
+  pitch = 0,
+  currentGridCell = {x = 0, z = 0}  -- Add grid cell tracking
 }
 
 function Camera:new()
   local camera = setmetatable({}, { __index = Camera })
   return camera
+end
+
+function Camera:setCurrentGridCell(x, z)
+  self.currentGridCell.x = x
+  self.currentGridCell.z = z
 end
 
 function Camera:update(dt)
@@ -73,10 +79,12 @@ function Camera:getDebugText()
     "Camera Info:\n" ..
     "Position: %.2f, %.2f, %.2f\n" ..
     "Yaw: %.2f\n" ..
-    "Pitch: %.2f",
+    "Pitch: %.2f\n" ..
+    "Grid Cell: %d, %d",
     self.position.x, self.position.y, self.position.z,
     self.yaw,
-    self.pitch
+    self.pitch,
+    self.currentGridCell.x, self.currentGridCell.z
   )
 end
 
