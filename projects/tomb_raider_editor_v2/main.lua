@@ -132,13 +132,30 @@ function lovr.draw(pass)
     local x = panelX - textureSize + (col * (textureSize + padding))  -- Start from left side of panel
     local y = startY - (row * (textureSize + padding))
     
-    -- Draw selection highlight if this texture is selected
+    -- Draw red outline if this texture is selected
     if selectedTexture == i then
-      pass:setColor(1, 1, 0, 1)  -- Yellow highlight
-      pass:plane(x, y, -0.95, textureSize + 0.02, textureSize + 0.02)
+      pass:setColor(1, 0, 0, 1)  -- Red outline
+      local halfSize = textureSize/2
+      -- Draw four lines to make a box
+      pass:line(
+        x - halfSize, y + halfSize, -0.89,  -- Top left
+        x + halfSize, y + halfSize, -0.89   -- Top right
+      )
+      pass:line(
+        x + halfSize, y + halfSize, -0.89,  -- Top right
+        x + halfSize, y - halfSize, -0.89   -- Bottom right
+      )
+      pass:line(
+        x + halfSize, y - halfSize, -0.89,  -- Bottom right
+        x - halfSize, y - halfSize, -0.89   -- Bottom left
+      )
+      pass:line(
+        x - halfSize, y - halfSize, -0.89,  -- Bottom left
+        x - halfSize, y + halfSize, -0.89   -- Top left
+      )
     end
     
-    -- Draw texture
+    -- Draw texture on top
     pass:setColor(1, 1, 1, 1)
     pass:setMaterial(tex.texture)
     pass:plane(x, y, -0.9, textureSize, textureSize)
@@ -157,40 +174,38 @@ function lovr.draw(pass)
   local uiX = nx * tanFov * aspect
   local uiY = ny * tanFov
   
-  -- Only draw if within panel bounds
+  -- Draw mouse position indicator (blue dot) only when in panel bounds
   if uiX >= (panelX - panelWidth/2) and 
      uiX <= (panelX + panelWidth/2) and 
      uiY <= 1 and 
      uiY >= -1 then
-    -- Set view pose for 2D overlay
     pass:setViewPose(1, lovr.math.vec3(), lovr.math.quat())
     pass:setColor(0, 0, 1, 1)  -- Blue color
-    -- Draw a circle at the scaled mouse position
     pass:circle(lovr.math.vec3(uiX, uiY, -1), 0.02)
   end
 end
 
 function lovr.mousepressed(x, y, button)
-  -- Convert mouse position to UI coordinates
+  -- Use the same UI coordinate calculation as in draw
   local width, height = lovr.system.getWindowDimensions()
   local nx = (x / width) * 2 - 1
   local ny = ((height - y) / height) * 2 - 1
-  local aspect = width / height
   local fov = 67.5 * (math.pi / 180)
   local tanFov = math.tan(fov / 2)
+  local aspect = width / height
   local uiX = nx * tanFov * aspect
   local uiY = ny * tanFov
   
   -- Check if click is in texture grid area
   local panelX = aspect * 0.5  -- Match the drawing position from lovr.draw
-  local startY = 0.6
-  local padding = 0.02
+  local startY = 0.5  -- Match the drawing position
+  local padding = 0.05  -- Match the drawing position
   
   for i, tex in ipairs(textures) do
     local row = math.floor((i-1) / gridColumns)
     local col = (i-1) % gridColumns
     
-    local x = panelX - textureSize/2 + (col * (textureSize + padding))  -- Match the drawing position
+    local x = panelX - textureSize + (col * (textureSize + padding))  -- Match the drawing position
     local y = startY - (row * (textureSize + padding))
     
     -- Check if click is within texture bounds
