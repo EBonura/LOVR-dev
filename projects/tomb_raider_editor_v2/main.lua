@@ -1,13 +1,15 @@
 local Camera = require('camera')
-local utils = require('utils')  -- We'll keep using the utilities
+local World = require('world')
+local utils = require('utils')
 
 local scene = {
     camera = nil,
-    gridSize = 20,  -- Size of the ground grid
+    world = nil,
 }
 
 function lovr.load()
     scene.camera = Camera:new()
+    scene.world = World:new()
 end
 
 function lovr.update(dt)
@@ -18,7 +20,18 @@ function lovr.draw(pass)
     -- Set camera for 3D scene
     pass:setViewPose(1, scene.camera.position, scene.camera.rotation)
     
-    -- Calculate cursor ray in world space
+    -- Calculate ray intersection
+    local intersection, t = calculateRayIntersection()
+    
+    -- Draw world elements
+    scene.world:drawGrid(pass)
+    scene.world:drawCursorIntersection(pass, t, intersection)
+    
+    -- Draw debug overlay
+    drawDebugInfo(pass)
+end
+
+function calculateRayIntersection()
     local mx, my = lovr.system.getMousePosition()
     local width, height = lovr.system.getWindowDimensions()
     
@@ -48,32 +61,7 @@ function lovr.draw(pass)
         rayStart.z + rayDirection.z * t
     )
     
-    -- Draw main elements
-    drawGrid(pass)
-    drawCursorIntersection(pass, t, intersection)
-    drawDebugInfo(pass)
-end
-
-function drawGrid(pass)
-    -- Draw grid slightly below Y=0 to prevent z-fighting
-    pass:setColor(0.5, 0.5, 0.5, 0.5)
-    pass:plane(0.5, -0.001, 0.5, scene.gridSize, scene.gridSize, -math.pi/2, 1, 0, 0, 'line', scene.gridSize, scene.gridSize)
-end
-
-function drawCursorIntersection(pass, t, intersection)
-    if t > 0 then  -- Only draw if intersection is in front of camera
-        -- Round intersection to nearest grid unit
-        local gridX = math.floor(intersection.x + 0.5)
-        local gridZ = math.floor(intersection.z + 0.5)
-        
-        -- Draw wireframe cube
-        pass:setColor(1, 1, 1, 1)
-        pass:box(gridX, 0.5, gridZ, 1, 1, 1, 0, 0, 0, 0, 'line')
-        
-        -- Draw intersection point
-        pass:setColor(1, 0, 0, 1)
-        pass:sphere(intersection, 0.1)
-    end
+    return intersection, t
 end
 
 function drawDebugInfo(pass)
