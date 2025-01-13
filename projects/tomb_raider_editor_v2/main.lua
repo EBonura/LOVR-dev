@@ -18,13 +18,14 @@ function lovr.update(dt)
     local mx, my = lovr.system.getMousePosition()
     
     if camera.mouseDown then
-      -- Calculate delta from last position instead of GetMouseX/Y
       local dx = (mx - camera.lastx) * camera.sensitivity 
       local dy = (my - camera.lasty) * camera.sensitivity
-      camera.rotation = camera.rotation:mul(lovr.math.quat(-dx, 0, 1, 0)):mul(lovr.math.quat(-dy, 1, 0, 0))
+      
+      -- Apply rotations directly without storing intermediates
+      camera.rotation:mul(lovr.math.quat(-dx, 0, 1, 0))
+      camera.rotation:mul(lovr.math.quat(-dy, 1, 0, 0))
     end
-
-    -- Store current position for next frame
+    
     camera.lastx = mx
     camera.lasty = my
   end
@@ -38,8 +39,9 @@ function lovr.update(dt)
   if lovr.system.isKeyDown('q') then dy = -1 end
   if lovr.system.isKeyDown('e') then dy = 1 end
   
-  -- Create fresh movement vector
-  local movement = lovr.math.vec3(dx, dy, dz):mul(dt * camera.speed)
+  -- Apply movement
+  local movement = lovr.math.vec3(dx, dy, dz)
+  movement:mul(dt * camera.speed)
   movement:rotate(camera.rotation)
   camera.position:add(movement)
 end
