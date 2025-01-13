@@ -1,6 +1,6 @@
 local UI = {
-    panelWidth = 0.4,
-    backgroundColor = {0.2, 0.2, 0.2, 1}
+    panelWidth = 300,  -- Width in pixels
+    backgroundColor = {0.2, 0.2, 0.2, 0.9}
 }
 
 function UI:new()
@@ -9,42 +9,51 @@ function UI:new()
 end
 
 function UI:draw(pass)
-    -- Save current state
-    pass:push()
-    
-    -- Set up for 2D UI rendering
-    pass:setViewPose(1, lovr.math.vec3(), lovr.math.quat())
-    
-    -- Calculate panel position
+    -- Get window dimensions
     local width, height = lovr.system.getWindowDimensions()
-    local aspect = width / height
-    local panelX = width * (1 - self.panelWidth)
+    
+    -- Set up 2D orthographic projection
+    local projection = mat4():orthographic(0, width, height, 0, -10, 10)
+    pass:setProjection(1, projection)
+    
+    -- Reset view transform
+    pass:setViewPose(1, mat4():identity())
+    
+    -- Calculate panel position (right side of screen)
+    local panelX = width - self.panelWidth
     
     -- Draw panel background
     pass:setColor(unpack(self.backgroundColor))
-    pass:plane(panelX, 0, -0.5, self.panelWidth * aspect, 2)
+    pass:plane(
+        panelX + self.panelWidth/2,  -- Center X of panel
+        height/2,                     -- Center Y of panel
+        0,                           -- Z position
+        self.panelWidth,            -- Width
+        height                      -- Height
+    )
     
-    -- Set up text rendering
+    -- Set up text
     pass:setColor(1, 1, 1, 1)
     local font = lovr.graphics.getDefaultFont()
     font:setPixelDensity(1)
     
-    -- Draw title text (slightly in front of panel)
+    -- Draw title text
     pass:text(
-        "Right Panel",
-        panelX ,  -- Offset from panel center
-        0.8,            -- Near top of screen
-        -0.49,          -- Slightly in front of panel
-        0.0008            -- Text size
+        "Control Panel",
+        panelX + 20,    -- Left-aligned with padding
+        30,             -- Top padding
+        0,              -- Z position
+        1,              -- Scale
+        0,              -- Rotation
+        0, 1, 0,        -- Rotation axis
+        0,              -- Wrap width
+        'left'          -- Alignment
     )
-    
-    pass:pop()
 end
 
 function UI:isPointInPanel(x, y)
     local width = lovr.system.getWindowWidth()
-    local panelStartX = width * (1 - self.panelWidth)
-    return x >= panelStartX
+    return x >= (width - self.panelWidth)
 end
 
 return UI

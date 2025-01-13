@@ -20,7 +20,7 @@ function lovr.update(dt)
 end
 
 function lovr.draw(pass)
-    -- Set camera for 3D scene
+    -- First draw 3D scene
     pass:setViewPose(1, scene.camera.position, scene.camera.rotation)
     
     -- Calculate ray intersection
@@ -30,11 +30,13 @@ function lovr.draw(pass)
     scene.world:drawGrid(pass)
     scene.world:drawCursorIntersection(pass, t, intersection)
     
-    -- Draw debug overlay
+    -- Draw debug info
     drawDebugInfo(pass)
     
-    -- Draw UI elements last (always on top)
+    -- Draw UI last, and save/restore the graphics state
+    pass:push()
     scene.ui:draw(pass)
+    pass:pop()
 end
 
 function calculateRayIntersection()
