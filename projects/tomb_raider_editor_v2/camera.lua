@@ -9,7 +9,10 @@ local Camera = {
   yaw = 0,
   pitch = 0,
   currentGridCell = {x = 0, y = 0, z = 0},
-  world = nil
+  world = nil,
+  gridKeyHoldTime = 0,        -- Time for key hold
+  gridKeyHoldDelay = 0.3,     -- Delay before continuous movement starts
+  gridMoveRepeatRate = 0.1    -- How fast it moves when held
 }
 
 function Camera:new()
@@ -19,6 +22,17 @@ end
 
 function Camera:setWorld(world)
   self.world = world
+end
+
+function Camera:handleKeyPressed(key)
+  -- Immediate response to key press
+  if self.world then
+    if key == 'r' then
+      self.world:shiftGridUp()
+    elseif key == 'f' then
+      self.world:shiftGridDown()
+    end
+  end
 end
 
 function Camera:update(dt)
@@ -44,6 +58,26 @@ function Camera:update(dt)
     self.lasty = my
   end
 
+  -- Handle held keys for grid movement
+  if self.world then
+    if lovr.system.isKeyDown('r') or lovr.system.isKeyDown('f') then
+      self.gridKeyHoldTime = self.gridKeyHoldTime + dt
+      if self.gridKeyHoldTime > self.gridKeyHoldDelay then
+        -- Calculate how many moves should occur based on time held
+        local moveInterval = (self.gridKeyHoldTime - self.gridKeyHoldDelay) % self.gridMoveRepeatRate
+        if moveInterval < dt then  -- Only move on interval
+          if lovr.system.isKeyDown('r') then
+            self.world:shiftGridUp()
+          else
+            self.world:shiftGridDown()
+          end
+        end
+      end
+    else
+      self.gridKeyHoldTime = 0
+    end
+  end
+
   -- WASD movement
   local dx, dy, dz = 0, 0, 0
   if lovr.system.isKeyDown('w') then dz = -1 end
@@ -52,16 +86,6 @@ function Camera:update(dt)
   if lovr.system.isKeyDown('d') then dx = 1 end
   if lovr.system.isKeyDown('q') then dy = -1 end
   if lovr.system.isKeyDown('e') then dy = 1 end
-  
-  -- Grid movement
-  if self.world then
-    if lovr.system.isKeyDown('r') then
-      self.world:shiftGridUp()
-    end
-    if lovr.system.isKeyDown('f') then
-      self.world:shiftGridDown()
-    end
-  end
   
   -- Apply movement
   local movement = lovr.math.vec3(dx, dy, dz)

@@ -20,6 +20,9 @@ function lovr.update(dt)
     scene.camera:update(dt)
 end
 
+function lovr.keypressed(key)
+    scene.camera:handleKeyPressed(key)
+end
 
 function lovr.draw(pass)
     -- First draw 3D scene
