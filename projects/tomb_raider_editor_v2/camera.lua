@@ -55,12 +55,7 @@ function Camera:update(dt)
 end
 
 function Camera:mousepressed(x, y, button)
-  -- Calculate panel boundary in screen coordinates
-  local width = lovr.system.getWindowWidth()
-  local panelStart = width * 0.8
-  
-  -- Only rotate camera when right-clicking in the 3D view area
-  if button == 2 and x < panelStart then
+  if button == 2 then
     self.mouseDown = true
     -- Initialize last position when starting to drag
     self.lastx, self.lasty = lovr.system.getMousePosition()
