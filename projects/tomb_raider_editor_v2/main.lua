@@ -98,17 +98,20 @@ function lovr.draw(pass)
   
   pass:pop()
   
-  -- For 2D UI, we can use normalized coordinates directly
+  -- For 2D UI, apply the same scaling as the 3D ray for consistency
+  local uiX = nx * tanFov * aspect
+  local uiY = ny * tanFov
+  
   -- Only draw if within panel bounds
-  if nx >= (panelX - panelWidth/2) and 
-     nx <= (panelX + panelWidth/2) and 
-     ny <= 1 and 
-     ny >= -1 then
+  if uiX >= (panelX - panelWidth/2) and 
+     uiX <= (panelX + panelWidth/2) and 
+     uiY <= 1 and 
+     uiY >= -1 then
     -- Set view pose for 2D overlay
     pass:setViewPose(1, lovr.math.vec3(), lovr.math.quat())
     pass:setColor(0, 0, 1, 1)  -- Blue color
-    -- Draw a circle at the exact mouse position
-    pass:circle(lovr.math.vec3(nx, ny, -1), 0.02)
+    -- Draw a circle at the scaled mouse position
+    pass:circle(lovr.math.vec3(uiX, uiY, -1), 0.02)
   end
 end
 
