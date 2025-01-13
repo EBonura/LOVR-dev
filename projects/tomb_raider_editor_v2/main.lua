@@ -19,6 +19,14 @@ function lovr.update(dt)
     scene.camera:update(dt)
 end
 
+function lovr.keypressed(key)
+    if key == 'r' then  -- R key to move grid up
+        scene.world:shiftGridUp()
+    elseif key == 'f' then  -- F key to move grid down
+        scene.world:shiftGridDown()
+    end
+end
+
 function lovr.draw(pass)
     -- First draw 3D scene
     pass:setViewPose(1, scene.camera.position, scene.camera.rotation)
@@ -61,7 +69,7 @@ function calculateRayIntersection()
     
     -- Calculate intersection with grid plane (y = 0)
     local rayStart = scene.camera.position
-    local planeY = 0
+    local planeY = scene.world.currentGridY  -- Use the current grid Y level
     local t = (planeY - rayStart.y) / rayDirection.y
     
     local intersection = lovr.math.vec3(
@@ -73,25 +81,24 @@ function calculateRayIntersection()
     return intersection, t
 end
 
-
 function lovr.mousepressed(x, y, button)
-  -- Check if mouse is in UI area first
-  if scene.ui:isPointInPanel(x, y) then
-      -- We'll add UI interaction later
-      return
-  end
-  
-  -- If not in UI, handle camera controls
-  scene.camera:mousepressed(x, y, button)
+    -- Check if mouse is in UI area first
+    if scene.ui:isPointInPanel(x, y) then
+        -- We'll add UI interaction later
+        return
+    end
+    
+    -- If not in UI, handle camera controls
+    scene.camera:mousepressed(x, y, button)
 end
 
 function lovr.mousereleased(x, y, button)
-  -- Check if mouse is in UI area first
-  if scene.ui:isPointInPanel(x, y) then
-      -- We'll add UI interaction later
-      return
-  end
-  
-  -- If not in UI, handle camera controls
-  scene.camera:mousereleased(x, y, button)
+    -- Check if mouse is in UI area first
+    if scene.ui:isPointInPanel(x, y) then
+        -- We'll add UI interaction later
+        return
+    end
+    
+    -- If not in UI, handle camera controls
+    scene.camera:mousereleased(x, y, button)
 end

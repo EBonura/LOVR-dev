@@ -1,6 +1,7 @@
 local World = {
     gridSize = 50,  -- Size of the ground grid
-    camera = nil    -- Reference to camera
+    camera = nil,   -- Reference to camera
+    currentGridY = 0  -- Current Y level of the grid
 }
 
 function World:new(camera)
@@ -10,9 +11,9 @@ function World:new(camera)
 end
 
 function World:drawGrid(pass)
-    -- Draw grid slightly below Y=0 to prevent z-fighting
+    -- Draw grid at current Y level
     pass:setColor(0.5, 0.5, 0.5, 0.5)
-    pass:plane(0.5, -0.001, 0.5, self.gridSize, self.gridSize, -math.pi/2, 1, 0, 0, 'line', self.gridSize, self.gridSize)
+    pass:plane(0.5, self.currentGridY, 0.5, self.gridSize, self.gridSize, -math.pi/2, 1, 0, 0, 'line', self.gridSize, self.gridSize)
 end
 
 function World:drawCursorIntersection(pass, t, intersection)
@@ -23,17 +24,25 @@ function World:drawCursorIntersection(pass, t, intersection)
         
         -- Update camera with current grid cell
         if self.camera then
-            self.camera:setCurrentGridCell(gridX, gridZ)
+            self.camera:setCurrentGridCell(gridX, self.currentGridY, gridZ)
         end
         
         -- Draw wireframe cube
         pass:setColor(1, 1, 1, 1)
-        pass:box(gridX, 0.5, gridZ, 1, 1, 1, 0, 0, 0, 0, 'line')
+        pass:box(gridX, self.currentGridY + 0.5, gridZ, 1, 1, 1, 0, 0, 0, 0, 'line')
         
         -- Draw intersection point
         pass:setColor(1, 0, 0, 1)
         pass:sphere(intersection, 0.1)
     end
+end
+
+function World:shiftGridUp()
+    self.currentGridY = self.currentGridY + 1
+end
+
+function World:shiftGridDown()
+    self.currentGridY = self.currentGridY - 1
 end
 
 return World

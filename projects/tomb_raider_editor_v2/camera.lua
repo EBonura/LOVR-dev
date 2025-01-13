@@ -8,7 +8,7 @@ local Camera = {
   lasty = 0,
   yaw = 0,
   pitch = 0,
-  currentGridCell = {x = 0, z = 0}  -- Add grid cell tracking
+  currentGridCell = {x = 0, y = 0, z = 0}  -- Added y coordinate
 }
 
 function Camera:new()
@@ -16,8 +16,9 @@ function Camera:new()
   return camera
 end
 
-function Camera:setCurrentGridCell(x, z)
+function Camera:setCurrentGridCell(x, y, z)
   self.currentGridCell.x = x
+  self.currentGridCell.y = y
   self.currentGridCell.z = z
 end
 
@@ -80,11 +81,11 @@ function Camera:getDebugText()
     "Position: %.2f, %.2f, %.2f\n" ..
     "Yaw: %.2f\n" ..
     "Pitch: %.2f\n" ..
-    "Grid Cell: %d, %d",
+    "Grid Cell: %d, %d, %d",  -- Added Y coordinate to display
     self.position.x, self.position.y, self.position.z,
     self.yaw,
     self.pitch,
-    self.currentGridCell.x, self.currentGridCell.z
+    self.currentGridCell.x, self.currentGridCell.y, self.currentGridCell.z
   )
 end
 
