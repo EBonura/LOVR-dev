@@ -35,18 +35,20 @@ function lovr.draw(pass)
   local width, height = lovr.system.getWindowDimensions()
   
   -- Convert mouse position to view space coordinates
-  local nx = -((mx / width) * 2 - 1)  -- Invert x to match cursor direction
+  local nx = (mx / width) * 2 - 1  -- Remove inversion to fix left/right movement
   local ny = ((height - my) / height) * 2 - 1
   
-  -- Create normalized ray direction
+  -- Create ray direction with FOV and aspect ratio scaling
   local rayStart = camera.position
-  local rayDirection = lovr.math.vec3(nx, ny, -1):normalize()
-  
-  -- Apply FOV scaling
   local fov = 67.5 * (math.pi / 180)
   local tanFov = math.tan(fov / 2)
-  rayDirection.x = rayDirection.x * tanFov
-  rayDirection.y = rayDirection.y * tanFov
+  local aspect = width / height
+  
+  local rayDirection = lovr.math.vec3(
+    nx * tanFov * aspect,  -- Scale x by both FOV and aspect ratio
+    ny * tanFov,          -- Scale y by FOV only
+    -1
+  )
   rayDirection:rotate(camera.rotation)
   rayDirection:normalize()
   
