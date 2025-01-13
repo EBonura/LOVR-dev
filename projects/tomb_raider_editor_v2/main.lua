@@ -52,19 +52,32 @@ function lovr.draw(pass)
   pass:setColor(0.5, 0.5, 0.5, 0.5)
   pass:plane(0, 0, 0, 20, 20, -math.pi/2, 1, 0, 0, 'line', 20, 20)
   
-  -- Draw right panel background (80% to 100% of screen width)
+  -- Calculate right panel dimensions based on window size
+  local width, height = lovr.system.getWindowDimensions()
+  local aspect = width / height
+  
+  -- In normalized device coordinates (-1 to 1), calculate panel position
+  -- 20% from the right means the panel starts at 0.6 in NDC
+  local panelWidth = 0.8 -- 40% of NDC width
+  local panelX = aspect * 0.6 -- Adjust for aspect ratio
+  
+  -- Draw right panel background
   pass:setColor(0.2, 0.2, 0.2, 1)
   pass:push()
   pass:setViewPose(1, lovr.math.vec3(), lovr.math.quat())
-  pass:plane(0.8, 0, -1, 0.4, 2) -- 20% width panel
+  pass:plane(panelX, 0, -1, panelWidth, 2)
   pass:setColor(1, 1, 1, 1)
-  pass:text("Tools", 0.65, 0.8, -0.9, 0.05)
+  pass:text("Tools", panelX - 0.3, 0.8, -0.9, 0.05)
   pass:pop()
 end
 
 function lovr.mousepressed(x, y, button)
-  -- Only rotate camera when right-clicking in the 3D view area (left 80% of screen)
-  if button == 2 and x < lovr.system.getWindowWidth() * 0.8 then
+  -- Calculate panel boundary in screen coordinates
+  local width = lovr.system.getWindowWidth()
+  local panelStart = width * 0.8
+  
+  -- Only rotate camera when right-clicking in the 3D view area
+  if button == 2 and x < panelStart then
     camera.mouseDown = true
     -- Initialize last position when starting to drag
     camera.lastx, camera.lasty = lovr.system.getMousePosition()
