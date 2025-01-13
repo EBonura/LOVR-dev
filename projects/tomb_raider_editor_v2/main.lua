@@ -4,8 +4,8 @@ local camera = Camera:new()
 -- Texture selection state
 local textures = {}
 local selectedTexture = nil
-local textureSize = 0.25  -- Size of texture squares in the UI
-local gridColumns = 1     -- Number of textures per row
+local textureSize = 0.15  -- Size of texture squares in the UI
+local gridColumns = 2     -- Number of textures per row
 
 function lovr.load()
   -- Load all textures from the Textures_PNG directory
@@ -59,6 +59,7 @@ function lovr.draw(pass)
   local width, height = lovr.system.getWindowDimensions()
   
   -- Convert mouse position to view space coordinates
+
   local nx = (mx / width) * 2 - 1  -- Remove inversion to fix left/right movement
   local ny = ((height - my) / height) * 2 - 1
   
@@ -108,9 +109,9 @@ function lovr.draw(pass)
   local aspect = width / height
   
   -- In normalized device coordinates (-1 to 1), calculate panel position
-  -- 20% from the right means the panel starts at 0.6 in NDC
-  local panelWidth = 0.8 -- 40% of NDC width
-  local panelX = aspect * 0.6 -- Adjust for aspect ratio
+  -- 25% from the right means the panel starts at 0.5 in NDC
+  local panelWidth = 0.6 -- 30% of NDC width
+  local panelX = aspect * 0.5 -- Adjust for aspect ratio
   
   -- Draw right panel background
   pass:setColor(0.2, 0.2, 0.2, 1)
@@ -121,14 +122,14 @@ function lovr.draw(pass)
   pass:text("Textures", panelX - 0.3, 0.8, -0.9, 0.05)
   
   -- Draw texture grid
-  local startY = 0.6  -- Start position for grid
-  local padding = 0.02  -- Space between textures
+  local startY = 0.5  -- Start position for grid
+  local padding = 0.05  -- Space between textures
   
   for i, tex in ipairs(textures) do
     local row = math.floor((i-1) / gridColumns)
     local col = (i-1) % gridColumns
     
-    local x = panelX + 0.1  -- Position textures slightly right of panel center
+    local x = panelX - textureSize + (col * (textureSize + padding))  -- Start from left side of panel
     local y = startY - (row * (textureSize + padding))
     
     -- Draw selection highlight if this texture is selected
@@ -181,7 +182,7 @@ function lovr.mousepressed(x, y, button)
   local uiY = ny * tanFov
   
   -- Check if click is in texture grid area
-  local panelX = aspect * 0.6
+  local panelX = aspect * 0.5  -- Match the drawing position from lovr.draw
   local startY = 0.6
   local padding = 0.02
   
@@ -189,7 +190,7 @@ function lovr.mousepressed(x, y, button)
     local row = math.floor((i-1) / gridColumns)
     local col = (i-1) % gridColumns
     
-    local x = panelX + 0.1  -- Match the drawing position
+    local x = panelX - textureSize/2 + (col * (textureSize + padding))  -- Match the drawing position
     local y = startY - (row * (textureSize + padding))
     
     -- Check if click is within texture bounds
