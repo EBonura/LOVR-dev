@@ -34,13 +34,19 @@ function lovr.draw(pass)
   local mx, my = lovr.system.getMousePosition()
   local width, height = lovr.system.getWindowDimensions()
   
-  -- Convert mouse position to normalized device coordinates (-1 to 1)
-  local nx = (mx / width) * 2 - 1
+  -- Convert mouse position to view space coordinates
+  local nx = -((mx / width) * 2 - 1)  -- Invert x to match cursor direction
   local ny = ((height - my) / height) * 2 - 1
   
-  -- Create ray from camera through cursor
+  -- Create normalized ray direction
   local rayStart = camera.position
-  local rayDirection = lovr.math.vec3(nx, ny, -1)
+  local rayDirection = lovr.math.vec3(nx, ny, -1):normalize()
+  
+  -- Apply FOV scaling
+  local fov = 67.5 * (math.pi / 180)
+  local tanFov = math.tan(fov / 2)
+  rayDirection.x = rayDirection.x * tanFov
+  rayDirection.y = rayDirection.y * tanFov
   rayDirection:rotate(camera.rotation)
   rayDirection:normalize()
   
@@ -56,13 +62,8 @@ function lovr.draw(pass)
   pass:setColor(0.5, 0.5, 0.5, 0.5)
   pass:plane(0, 0, 0, 20, 20, -math.pi/2, 1, 0, 0, 'line', 20, 20)
   
-  -- Draw debug line and intersection point
+  -- Draw intersection point
   if t > 0 then  -- Only draw if intersection is in front of camera
-    -- Draw green line from camera to intersection
-    pass:setColor(0, 1, 0, 1)
-    pass:line(camera.position, intersection)
-    
-    -- Draw red point at intersection
     pass:setColor(1, 0, 0, 1)
     pass:sphere(intersection, 0.1)
   end
