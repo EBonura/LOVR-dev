@@ -32,36 +32,40 @@ function lovr.draw(pass)
 end
 
 function calculateRayIntersection()
-    local mx, my = lovr.system.getMousePosition()
-    local width, height = lovr.system.getWindowDimensions()
-    
-    -- Convert mouse position to view space coordinates
-    local nx = (mx / width) * 2 - 1
-    local ny = ((height - my) / height) * 2 - 1
-    
-    -- Create ray direction with FOV and aspect ratio scaling
-    local rayStart = scene.camera.position
-    local fov = 67.5 * (math.pi / 180)
-    local tanFov = math.tan(fov / 2)
-    local aspect = width / height
-    
-    local rayDirection = lovr.math.vec3(
-        nx * tanFov * aspect,
-        ny * tanFov,
-        -1
-    )
-    rayDirection:rotate(scene.camera.rotation)
-    rayDirection:normalize()
-    
-    -- Calculate intersection with grid plane (y = 0)
-    local t = -rayStart.y / rayDirection.y
-    local intersection = lovr.math.vec3(
-        rayStart.x + rayDirection.x * t,
-        0,
-        rayStart.z + rayDirection.z * t
-    )
-    
-    return intersection, t
+  local mx, my = lovr.system.getMousePosition()
+  local width, height = lovr.system.getWindowDimensions()
+  
+  -- Convert mouse position to clip space (-1 to 1)
+  local nx = (mx / width) * 2 - 1
+  local ny = ((height - my) / height) * 2 - 1
+  
+  -- Get projection details
+  local fov = 67.5 * (math.pi / 180)
+  local aspect = width / height
+  local near = 0.01  -- LÖVR's default near plane
+  
+  -- Calculate ray direction using proper perspective projection
+  local tanFov = math.tan(fov / 2)
+  local rayDirection = lovr.math.vec3(
+      nx * tanFov * aspect,
+      ny * tanFov,
+      -1
+  )
+  rayDirection:normalize()  -- Normalize before rotation
+  rayDirection:rotate(scene.camera.rotation)
+  
+  -- Calculate intersection with grid plane (y = 0)
+  local rayStart = scene.camera.position
+  local planeY = 0
+  local t = (planeY - rayStart.y) / rayDirection.y
+  
+  local intersection = lovr.math.vec3(
+      rayStart.x + rayDirection.x * t,
+      planeY,
+      rayStart.z + rayDirection.z * t
+  )
+  
+  return intersection, t
 end
 
 function drawDebugInfo(pass)

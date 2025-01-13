@@ -1,5 +1,5 @@
 local World = {
-    gridSize = 20,  -- Size of the ground grid
+    gridSize = 50,  -- Size of the ground grid
 }
 
 function World:new()
