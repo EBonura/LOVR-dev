@@ -1,10 +1,12 @@
 local UI = {
     panelWidth = 300,  -- Width in pixels
-    backgroundColor = {0.2, 0.2, 0.2, 0.9}
+    backgroundColor = {0.2, 0.2, 0.2, 0.9},
+    camera = nil       -- Add camera field
 }
 
-function UI:new()
+function UI:new(camera)
     local ui = setmetatable({}, { __index = UI })
+    ui.camera = camera  -- Store the camera reference
     return ui
 end
 
@@ -37,13 +39,26 @@ function UI:draw(pass)
     local font = lovr.graphics.getDefaultFont()
     font:setPixelDensity(1)
     
-    -- Draw title text
+    -- Draw debug info at the top
+    pass:text(
+        self.camera:getDebugText(),  -- Camera debug text
+        panelX + 10,                 -- Left-aligned with smaller padding
+        10,                          -- Top padding
+        0,                           -- Z position
+        0.6,                         -- Smaller scale
+        0,                           -- Rotation
+        0, 1, 0,                     -- Rotation axis
+        0,                           -- Wrap width
+        'left'                       -- Alignment
+    )
+
+    -- Draw title text below debug info
     pass:text(
         "Control Panel",
-        panelX + 20,    -- Left-aligned with padding
-        30,             -- Top padding
+        panelX + 10,    -- Left-aligned with smaller padding
+        120,            -- Below debug info
         0,              -- Z position
-        1,              -- Scale
+        0.8,            -- Slightly larger than debug text but still modest
         0,              -- Rotation
         0, 1, 0,        -- Rotation axis
         0,              -- Wrap width

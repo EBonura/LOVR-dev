@@ -12,7 +12,7 @@ local scene = {
 function lovr.load()
     scene.camera = Camera:new()
     scene.world = World:new()
-    scene.ui = UI:new()
+    scene.ui = UI:new(scene.camera)
 end
 
 function lovr.update(dt)
@@ -30,10 +30,7 @@ function lovr.draw(pass)
     scene.world:drawGrid(pass)
     scene.world:drawCursorIntersection(pass, t, intersection)
     
-    -- Draw debug info
-    drawDebugInfo(pass)
-    
-    -- Draw UI last, and save/restore the graphics state
+    -- Draw UI last (includes debug info now)
     pass:push()
     scene.ui:draw(pass)
     pass:pop()
@@ -76,21 +73,6 @@ function calculateRayIntersection()
     return intersection, t
 end
 
-function drawDebugInfo(pass)
-    -- Reset view for debug overlay
-    pass:setViewPose(1, lovr.math.vec3(0, 0, 0), lovr.math.quat())
-    pass:setColor(1, 1, 1, 1)
-    pass:text(
-        scene.camera:getDebugText(),
-        -1.1, 0.6, -1,
-        0.04,
-        0,
-        0, 1, 0,
-        0,
-        'left',
-        'top'
-    )
-end
 
 function lovr.mousepressed(x, y, button)
   -- Check if mouse is in UI area first
