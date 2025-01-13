@@ -30,9 +30,42 @@ function lovr.draw(pass)
   -- Reset view pose for 3D scene
   pass:setViewPose(1, camera.position, camera.rotation)
   
+  -- Calculate cursor ray in world space
+  local mx, my = lovr.system.getMousePosition()
+  local width, height = lovr.system.getWindowDimensions()
+  
+  -- Convert mouse position to normalized device coordinates (-1 to 1)
+  local nx = (mx / width) * 2 - 1
+  local ny = ((height - my) / height) * 2 - 1
+  
+  -- Create ray from camera through cursor
+  local rayStart = camera.position
+  local rayDirection = lovr.math.vec3(nx, ny, -1)
+  rayDirection:rotate(camera.rotation)
+  rayDirection:normalize()
+  
+  -- Calculate intersection with grid plane (y = 0)
+  local t = -rayStart.y / rayDirection.y
+  local intersection = lovr.math.vec3(
+    rayStart.x + rayDirection.x * t,
+    0,
+    rayStart.z + rayDirection.z * t
+  )
+  
   -- Draw grid
   pass:setColor(0.5, 0.5, 0.5, 0.5)
   pass:plane(0, 0, 0, 20, 20, -math.pi/2, 1, 0, 0, 'line', 20, 20)
+  
+  -- Draw debug line and intersection point
+  if t > 0 then  -- Only draw if intersection is in front of camera
+    -- Draw green line from camera to intersection
+    pass:setColor(0, 1, 0, 1)
+    pass:line(camera.position, intersection)
+    
+    -- Draw red point at intersection
+    pass:setColor(1, 0, 0, 1)
+    pass:sphere(intersection, 0.1)
+  end
   
   -- Calculate right panel dimensions based on window size
   local width, height = lovr.system.getWindowDimensions()
