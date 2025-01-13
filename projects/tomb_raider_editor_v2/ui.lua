@@ -39,30 +39,30 @@ function UI:draw(pass)
     local font = lovr.graphics.getDefaultFont()
     font:setPixelDensity(1)
     
-    -- Draw debug info at the top
+    -- Draw title text at the top
+    pass:text(
+        "Control Panel",
+        panelX + 10,    -- Left-aligned with smaller padding
+        height - 50,             -- Near top
+        0,              -- Z position
+        0.8,            -- Modest scale
+        0,              -- Rotation
+        0, 1, 0,        -- Rotation axis
+        0,              -- Wrap width
+        'left'          -- Alignment
+    )
+
+    -- Draw debug info below title
     pass:text(
         self.camera:getDebugText(),  -- Camera debug text
         panelX + 10,                 -- Left-aligned with smaller padding
-        10,                          -- Top padding
+        60,                          -- Below title with spacing
         0,                           -- Z position
         0.6,                         -- Smaller scale
         0,                           -- Rotation
         0, 1, 0,                     -- Rotation axis
         0,                           -- Wrap width
         'left'                       -- Alignment
-    )
-
-    -- Draw title text below debug info
-    pass:text(
-        "Control Panel",
-        panelX + 10,    -- Left-aligned with smaller padding
-        120,            -- Below debug info
-        0,              -- Z position
-        0.8,            -- Slightly larger than debug text but still modest
-        0,              -- Rotation
-        0, 1, 0,        -- Rotation axis
-        0,              -- Wrap width
-        'left'          -- Alignment
     )
 end
 
