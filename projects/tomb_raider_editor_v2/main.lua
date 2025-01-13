@@ -3,9 +3,12 @@ local camera = {
   rotation = lovr.math.newQuat(),
   speed = 3,
   mouseDown = false,
-  sensitivity = 0.002, -- Reduced from 0.002
+  sensitivity = 0.002,
   lastx = 0,
-  lasty = 0
+  lasty = 0,
+  -- Add separate angles for yaw and pitch
+  yaw = 0,
+  pitch = 0
 }
 
 function lovr.load()
@@ -21,9 +24,14 @@ function lovr.update(dt)
       local dx = (mx - camera.lastx) * camera.sensitivity 
       local dy = (my - camera.lasty) * camera.sensitivity
       
-      -- Apply rotations directly without storing intermediates
-      camera.rotation:mul(lovr.math.quat(-dx, 0, 1, 0))
-      camera.rotation:mul(lovr.math.quat(-dy, 1, 0, 0))
+      -- Update yaw and pitch angles
+      camera.yaw = camera.yaw - dx
+      camera.pitch = math.max(-math.pi/2, math.min(math.pi/2, camera.pitch - dy))
+      
+      -- Set rotation directly from angles using a single new quaternion
+      camera.rotation = lovr.math.newQuat()
+      camera.rotation:mul(lovr.math.quat(camera.yaw, 0, 1, 0))
+      camera.rotation:mul(lovr.math.quat(camera.pitch, 1, 0, 0))
     end
     
     camera.lastx = mx
