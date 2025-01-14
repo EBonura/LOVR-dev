@@ -148,9 +148,24 @@ end
 function Block:setTexture(texture, textureInfo)
     self.texture = texture
     self.textureInfo = textureInfo
-    self.faceTextures = {}  -- Reset face textures
-    self.faceTextureInfos = {}  -- Reset face texture infos
+    
+    -- Initialize face tables if they don't exist
+    if not self.faceTextures then
+        self.faceTextures = {}
+    end
+    if not self.faceTextureInfos then
+        self.faceTextureInfos = {}
+    end
+    
+    -- Set the same texture for all faces
+    local faces = {"front", "back", "left", "right", "top", "bottom"}
+    for _, face in ipairs(faces) do
+        self.faceTextures[face] = texture
+        self.faceTextureInfos[face] = textureInfo
+    end
 end
+
+
 
 function Block:setFaceTexture(face, texture, textureInfo)
     if not self.faceTextures then

@@ -502,8 +502,11 @@ function UI:handleClick(x, y)
                 self.world.selectedBlock:setTexture(selectedTex.texture, textureInfo)
             elseif self.world.currentMode == self.world.MODE_FACE_SELECT and self.world.selectedFace then
                 -- In face select mode, update only selected face
-                self.world.selectedFace.block:setFaceTexture(
-                    self.world.selectedFace.face,
+                local block = self.world.selectedFace.block
+                local face = self.world.selectedFace.face
+                print("Setting face texture with info:", textureInfo.folder, textureInfo.number)
+                block:setFaceTexture(
+                    face,
                     selectedTex.texture,
                     textureInfo
                 )

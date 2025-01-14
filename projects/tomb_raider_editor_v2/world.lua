@@ -51,6 +51,21 @@ function World:setMode(mode)
             -- Keep selected block when switching to face select
             self.selectedFace = nil
             self.hoveredFace = nil
+            
+            -- Initialize face textures if we have a selected block
+            if self.selectedBlock and self.selectedBlock.texture then
+                -- Set texture for all faces to match the block's texture
+                local faces = {"front", "back", "left", "right", "top", "bottom"}
+                for _, face in ipairs(faces) do
+                    if not self.selectedBlock.faceTextures[face] then
+                        self.selectedBlock:setFaceTexture(
+                            face,
+                            self.selectedBlock.texture,
+                            self.selectedBlock.textureInfo
+                        )
+                    end
+                end
+            end
         end
     end
 end
@@ -101,10 +116,29 @@ function World:handleClick(x, y, z)
             self.selectedBlock = block
             -- Sync UI texture selection with block's texture
             if self.ui and block.texture then
+                print("Syncing block texture with info:", block.textureInfo.folder, block.textureInfo.number)
                 self.ui:setSelectedTextureByImage(block.texture, block.textureInfo)
             end
         else
             self.selectedBlock = nil
+        end
+    elseif self.currentMode == self.MODE_FACE_SELECT and self.hoveredFace then
+        -- In face select mode, handle face selection
+        self.selectedFace = self.hoveredFace
+        -- Sync UI texture selection with face texture or block texture
+        if self.ui then
+            local block = self.hoveredFace.block
+            local face = self.hoveredFace.face
+            local faceTexture = block.faceTextures[face]
+            local faceTextureInfo = block.faceTextureInfos[face]
+            
+            if faceTexture and faceTextureInfo then
+                print("Syncing face texture with info:", faceTextureInfo.folder, faceTextureInfo.number)
+                self.ui:setSelectedTextureByImage(faceTexture, faceTextureInfo)
+            elseif block.texture and block.textureInfo then
+                print("Syncing block default texture with info:", block.textureInfo.folder, block.textureInfo.number)
+                self.ui:setSelectedTextureByImage(block.texture, block.textureInfo)
+            end
         end
     end
 end
