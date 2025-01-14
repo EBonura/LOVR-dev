@@ -77,35 +77,43 @@ function UI:loadTexturesFromCurrentFolder()
 end
 
 function UI:setSelectedTextureByImage(texture)
-    -- First, try to find it in the current folder
+    if not texture then return false end
+    print("Starting search for texture")
+    
+    -- First try current folder
+    local foundInCurrentFolder = false
     for _, tex in ipairs(self.textures) do
         if tex.texture == texture then
+            foundInCurrentFolder = true
             self.selectedTexture = tex
-            return true
+            print("Found in current folder:", self:getCurrentFolder())
+            break
         end
     end
     
-    -- If not found, we need to identify which folder this texture belongs to
-    -- Try each folder until we find a match
-    local originalFolder = self.currentFolderIndex
-    
-    for i, folder in ipairs(self.availableFolders) do
-        self.currentFolderIndex = i
-        self:loadTexturesFromCurrentFolder()
-        
-        for _, tex in ipairs(self.textures) do
-            if tex.texture == texture then
-                -- Found it!
-                self.selectedTexture = tex
-                return true
+    if not foundInCurrentFolder then
+        print("Not found in current folder, searching all folders")
+        -- Try each folder until we find the texture
+        for i, folderName in ipairs(self.availableFolders) do
+            print("Checking folder:", folderName)
+            -- Switch folder
+            self.currentFolderIndex = i
+            -- Load textures for this folder
+            self:loadTexturesFromCurrentFolder()
+            
+            -- Check if texture is in this folder
+            for _, tex in ipairs(self.textures) do
+                if tex.texture == texture then
+                    print("Found texture in folder:", folderName)
+                    self.selectedTexture = tex
+                    -- Important: don't return here, we want to keep this folder active
+                    return true
+                end
             end
         end
     end
     
-    -- If we didn't find it, restore original folder
-    self.currentFolderIndex = originalFolder
-    self:loadTexturesFromCurrentFolder()
-    return false
+    return foundInCurrentFolder
 end
 
 function UI:drawModeIndicator(pass)
