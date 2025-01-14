@@ -49,35 +49,13 @@ end
 
 function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHighlighted)
     local faceTexture = self.faceTextures[faceName] or self.texture
-    
-    -- Draw highlighted face background if needed
-    if isHighlighted then
-        pass:setColor(1, 1, 0, 0.3)  -- Yellow semi-transparent highlight
-        local center = (v1 + v2 + v3 + v4) / 4
-        local width = vec3(v2 - v1):length()
-        local height = vec3(v3 - v1):length()
-        
-        pass:push()
-        pass:translate(center)
-        
-        if normal.x ~= 0 then
-            pass:rotate(normal.x > 0 and math.pi/2 or -math.pi/2, 0, 1, 0)
-        elseif normal.z ~= 0 then
-            pass:rotate(normal.z > 0 and math.pi or 0, 0, 1, 0)
-        elseif normal.y ~= 0 then
-            pass:rotate(normal.y > 0 and -math.pi/2 or math.pi/2, 1, 0, 0)
-        end
-        
-        pass:plane(0, 0, 0.001, width, height)  -- Slight offset to avoid z-fighting
-        pass:pop()
-    end
+    local center = (v1 + v2 + v3 + v4) / 4
+    local width = vec3(v2 - v1):length()
+    local height = vec3(v3 - v1):length()
 
-    -- Draw textured face
+    -- First, draw the textured face
     if faceTexture then
-        local center = (v1 + v2 + v3 + v4) / 4
-        local width = vec3(v2 - v1):length()
-        local height = vec3(v3 - v1):length()
-        
+        pass:setColor(1, 1, 1, 1)  -- Full opacity for texture
         pass:setMaterial(faceTexture)
         pass:push()
         pass:translate(center)
@@ -95,7 +73,27 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHighlighted)
         pass:setMaterial()
     end
     
-    -- Draw wireframe outline with proper color components
+    -- Then, draw highlight overlay if needed
+    if isHighlighted then
+        pass:setColor(1, 1, 0, 0.1)  -- Yellow semi-transparent highlight
+        pass:push()
+        -- Offset center slightly in the direction of the normal
+        local highlightCenter = center + normal * 0.001
+        pass:translate(highlightCenter)
+        
+        if normal.x ~= 0 then
+            pass:rotate(normal.x > 0 and math.pi/2 or -math.pi/2, 0, 1, 0)
+        elseif normal.z ~= 0 then
+            pass:rotate(normal.z > 0 and math.pi or 0, 0, 1, 0)
+        elseif normal.y ~= 0 then
+            pass:rotate(normal.y > 0 and -math.pi/2 or math.pi/2, 1, 0, 0)
+        end
+        
+        pass:plane(0, 0, 0, width, height)  -- No need for additional z-offset since we moved the center
+        pass:pop()
+    end
+    
+    -- Finally, draw wireframe outline
     pass:setColor(isHighlighted and 1 or 1, isHighlighted and 1 or 1, isHighlighted and 0 or 1, 1)
     pass:line(v1, v2)
     pass:line(v2, v4)
