@@ -6,7 +6,17 @@ local World = {
     currentGridY = 0,  -- Current Y level of the grid
     numLineSegments = 10,  -- Number of segments for fading lines
     smallGridSize = 10,    -- Size of the local grid around the cube
-    blocks = {}  -- Table to store all blocks
+    blocks = {},  -- Table to store all blocks
+    ui = nil,     -- Reference to UI
+    
+    -- Mode handling
+    MODE_PLACE = "PLACE",
+    MODE_SELECT = "SELECT",
+    currentMode = "PLACE",  -- Default mode
+    
+    -- Selection handling
+    selectedBlock = nil,
+    highlightedBlock = nil  -- For hovering before selection
 }
 
 function World:new(camera)
@@ -19,6 +29,49 @@ end
 
 function World:setUI(ui)
     self.ui = ui
+end
+
+function World:setMode(mode)
+    if mode == self.MODE_PLACE or mode == self.MODE_SELECT then
+        self.currentMode = mode
+        -- Clear selection when switching to place mode
+        if mode == self.MODE_PLACE then
+            self.selectedBlock = nil
+            self.highlightedBlock = nil
+        end
+    end
+end
+
+function World:toggleMode()
+    if self.currentMode == self.MODE_PLACE then
+        self:setMode(self.MODE_SELECT)
+    else
+        self:setMode(self.MODE_PLACE)
+    end
+end
+
+function World:findBlockAt(x, y, z)
+    for _, block in ipairs(self.blocks) do
+        if block.position.x == x and 
+           block.position.y == y and 
+           block.position.z == z then
+            return block
+        end
+    end
+    return nil
+end
+
+function World:handleClick(x, y, z)
+    if self.currentMode == self.MODE_PLACE then
+        self:placeBlock(x, y, z)
+    elseif self.currentMode == self.MODE_SELECT then
+        local block = self:findBlockAt(x, y, z)
+        if block then
+            self.selectedBlock = block
+        else
+            self.selectedBlock = nil
+        end
+    end
 end
 
 function World:placeBlock(x, y, z)
@@ -43,6 +96,20 @@ function World:placeBlock(x, y, z)
     return true
 end
 
+function World:drawBlock(pass, block)
+    -- Normal block drawing
+    block:draw(pass)
+    
+    -- Draw selection highlight if this is the selected or highlighted block
+    if block == self.selectedBlock then
+        pass:setColor(1, 1, 0, 0.3)  -- Yellow for selection
+        block:drawHighlight(pass)
+    elseif block == self.highlightedBlock then
+        pass:setColor(0.5, 0.5, 1, 0.3)  -- Blue for hover
+        block:drawHighlight(pass)
+    end
+end
+
 function World:drawGrid(pass)
     -- Adjust opacity based on current height
     local gridOpacity = self.currentGridY == 0 and 0.5 or 0.15  -- More visible at ground level, faint otherwise
@@ -51,10 +118,15 @@ function World:drawGrid(pass)
     pass:setColor(0.5, 0.5, 0.5, gridOpacity)
     pass:plane(0.5, 0, 0.5, self.gridSize, self.gridSize, -math.pi/2, 1, 0, 0, 'line', self.gridSize, self.gridSize)
     
-    -- Draw all blocks
+    -- Draw all blocks with potential highlights
     for _, block in ipairs(self.blocks) do
-        block:draw(pass)
+        self:drawBlock(pass, block)
     end
+    
+    -- Draw mode indicator
+    pass:setColor(1, 1, 1, 1)
+    local modeText = "Mode: " .. self.currentMode
+    pass:text(modeText, -1, 2, -2, 0.1)
 end
 
 function World:drawFadingLine(pass, startX, startY, startZ, endX, endY, endZ)

@@ -22,6 +22,13 @@ function lovr.update(dt)
 end
 
 function lovr.keypressed(key)
+    if key == 'tab' then
+        scene.world:toggleMode()
+        return
+    elseif key == 'delete' and scene.world.currentMode == scene.world.MODE_SELECT then
+        -- TODO: Implement block deletion
+        return
+    end
     scene.camera:handleKeyPressed(key)
 end
 
@@ -35,12 +42,25 @@ function lovr.draw(pass)
         -- Calculate ray intersection
         local intersection, t = calculateRayIntersection()
         
+        -- Update highlighted block in SELECT mode
+        if scene.world.currentMode == scene.world.MODE_SELECT and t > 0 then
+            local gridX = math.floor(intersection.x + 0.5)
+            local gridZ = math.floor(intersection.z + 0.5)
+            scene.world.highlightedBlock = scene.world:findBlockAt(gridX, scene.world.currentGridY, gridZ)
+        end
+        
         -- Draw world elements
         scene.world:drawGrid(pass)
-        scene.world:drawCursorIntersection(pass, t, intersection)
+        
+        -- Only draw cursor intersection in PLACE mode
+        if scene.world.currentMode == scene.world.MODE_PLACE then
+            scene.world:drawCursorIntersection(pass, t, intersection)
+        end
     else
         -- Still draw the grid even when mouse is in UI
         scene.world:drawGrid(pass)
+        -- Clear highlight when mouse is in UI
+        scene.world.highlightedBlock = nil
     end
     
     -- Draw UI last (includes debug info now)
@@ -98,13 +118,13 @@ function lovr.mousepressed(x, y, button)
         return
     end
     
-    -- Handle block placement with left click
+    -- Handle block interactions with left click
     if button == 1 then
         local intersection, t = calculateRayIntersection()
         if t > 0 then
             local gridX = math.floor(intersection.x + 0.5)
             local gridZ = math.floor(intersection.z + 0.5)
-            scene.world:placeBlock(gridX, scene.world.currentGridY, gridZ)
+            scene.world:handleClick(gridX, scene.world.currentGridY, gridZ)
         end
     end
     

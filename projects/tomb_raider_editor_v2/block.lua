@@ -104,4 +104,11 @@ function Block:draw(pass)
     self:drawFace(pass, corners[3], corners[1], bottomCorners[3], bottomCorners[1], vec3(-1, 0, 0))  -- left
 end
 
+function Block:drawHighlight(pass)
+    -- Draw slightly larger box around the block for highlighting
+    local scale = 1.02  -- Make highlight slightly bigger than block
+    local x, y, z = self.position:unpack()
+    pass:box(x, y + 0.5, z, scale, scale, scale)
+end
+
 return Block
