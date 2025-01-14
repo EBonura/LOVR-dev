@@ -10,6 +10,12 @@ local UI = {
     texPerRow = nil,   -- Number of textures per row
     world = nil,       -- Reference to world
     
+    -- New properties for folder navigation
+    availableFolders = {"Brick", "Floor", "Metal", "Misc", "Stains", "Stone", "Wall"},
+    currentFolderIndex = 1,
+    buttonWidth = 30,
+    buttonHeight = 30,
+    
     -- Mode indicator properties
     modeIndicatorWidth = 200,
     modeIndicatorHeight = 40,
@@ -23,58 +29,83 @@ local UI = {
 function UI:new(camera)
     local ui = setmetatable({}, { __index = UI })
     ui.camera = camera
-    ui:loadTextures()
-    -- Select first texture by default
-    if #ui.textures > 0 then
-        ui.selectedTexture = ui.textures[1]
-    end
+    ui:loadTexturesFromCurrentFolder()
     return ui
 end
 
+function UI:getCurrentFolder()
+    return self.availableFolders[self.currentFolderIndex]
+end
+
+function UI:nextFolder()
+    self.currentFolderIndex = self.currentFolderIndex % #self.availableFolders + 1
+    self:loadTexturesFromCurrentFolder()
+end
+
+function UI:previousFolder()
+    self.currentFolderIndex = (self.currentFolderIndex - 2) % #self.availableFolders + 1
+    self:loadTexturesFromCurrentFolder()
+end
+
+function UI:loadTexturesFromCurrentFolder()
+    local folder = self:getCurrentFolder()
+    local folderPath = "textures/" .. folder .. "/"
+    self.textures = {}
+    
+    -- Load all textures from the current folder
+    for i = 1, 14 do  -- Adjust range based on your texture count
+        local filename = string.format("Horror_%s_%02d-128x128.png", folder, i)
+        local path = folderPath .. filename
+        
+        -- Try to load the texture
+        local success, texture = pcall(lovr.graphics.newTexture, path)
+        if success then
+            table.insert(self.textures, {
+                texture = texture,
+                name = filename,
+                path = path,
+                folder = folder,
+                number = i
+            })
+        end
+    end
+    
+    -- Select first texture by default if available
+    if #self.textures > 0 then
+        self.selectedTexture = self.textures[1]
+    end
+end
+
 function UI:setSelectedTextureByImage(texture)
-    -- Find and select the texture entry that matches the given texture
+    -- First, try to find it in the current folder
     for _, tex in ipairs(self.textures) do
         if tex.texture == texture then
             self.selectedTexture = tex
             return true
         end
     end
-    return false
-end
-
-function UI:loadTextures()
-    -- Load all brick textures
-    local brickPath = "textures/Brick/"
-    self.textures = {}
     
-    -- List of brick textures
-    local brickTextures = {
-        "Horror_Brick_01-128x128.png",
-        "Horror_Brick_02-128x128.png",
-        "Horror_Brick_03-128x128.png",
-        "Horror_Brick_04-128x128.png",
-        "Horror_Brick_05-128x128.png",
-        "Horror_Brick_06-128x128.png",
-        "Horror_Brick_07-128x128.png",
-        "Horror_Brick_08-128x128.png",
-        "Horror_Brick_09-128x128.png",
-        "Horror_Brick_10-128x128.png",
-        "Horror_Brick_11-128x128.png",
-        "Horror_Brick_12-128x128.png",
-        "Horror_Brick_13-128x128.png",
-        "Horror_Brick_14-128x128.png"
-    }
+    -- If not found, we need to identify which folder this texture belongs to
+    -- Try each folder until we find a match
+    local originalFolder = self.currentFolderIndex
     
-    -- Load each texture
-    for _, filename in ipairs(brickTextures) do
-        local path = brickPath .. filename
-        local texture = lovr.graphics.newTexture(path)
-        table.insert(self.textures, {
-            texture = texture,
-            name = filename,
-            path = path
-        })
+    for i, folder in ipairs(self.availableFolders) do
+        self.currentFolderIndex = i
+        self:loadTexturesFromCurrentFolder()
+        
+        for _, tex in ipairs(self.textures) do
+            if tex.texture == texture then
+                -- Found it!
+                self.selectedTexture = tex
+                return true
+            end
+        end
     end
+    
+    -- If we didn't find it, restore original folder
+    self.currentFolderIndex = originalFolder
+    self:loadTexturesFromCurrentFolder()
+    return false
 end
 
 function UI:drawModeIndicator(pass)
@@ -119,6 +150,51 @@ function UI:drawModeIndicator(pass)
         0,
         'right'
     )
+end
+
+function UI:drawFolderNavigation(pass, x, y)
+    -- Draw previous folder button
+    pass:setColor(0.3, 0.3, 0.3, 1)
+    pass:plane(
+        x + self.buttonWidth/2,
+        y,
+        0,
+        self.buttonWidth,
+        self.buttonHeight
+    )
+    pass:setColor(1, 1, 1, 1)
+    pass:text("<", x + self.buttonWidth/2, y, 0, 0.8)
+    
+    -- Draw current folder name
+    local folderNameWidth = self.panelWidth - (2 * self.buttonWidth) - (2 * self.padding)
+    pass:setColor(0.25, 0.25, 0.25, 1)
+    pass:plane(
+        x + self.buttonWidth + self.padding + folderNameWidth/2,
+        y,
+        0,
+        folderNameWidth,
+        self.buttonHeight
+    )
+    pass:setColor(1, 1, 1, 1)
+    pass:text(
+        self:getCurrentFolder(),
+        x + self.buttonWidth + self.padding + folderNameWidth/2,
+        y,
+        0,
+        0.6
+    )
+    
+    -- Draw next folder button
+    pass:setColor(0.3, 0.3, 0.3, 1)
+    pass:plane(
+        x + self.panelWidth - self.buttonWidth/2,
+        y,
+        0,
+        self.buttonWidth,
+        self.buttonHeight
+    )
+    pass:setColor(1, 1, 1, 1)
+    pass:text(">", x + self.panelWidth - self.buttonWidth/2, y, 0, 0.8)
 end
 
 function UI:draw(pass)
@@ -166,12 +242,15 @@ function UI:draw(pass)
         'left'
     )
 
-    -- Draw selected texture info right below title
+    -- Draw folder navigation
+    self:drawFolderNavigation(pass, panelX, height - 70)
+
+    -- Draw selected texture info right below folder navigation
     if self.selectedTexture then
         pass:text(
             "Selected: " .. self.selectedTexture.name,
             panelX + self.padding,
-            height - 50,
+            height - 90,
             0,
             0.4,
             0,
@@ -181,8 +260,8 @@ function UI:draw(pass)
         )
     end
     
-    -- Update class variables for click detection - moved down for more space
-    self.startY = height - 80  -- Start below title and selected texture info
+    -- Update class variables for click detection
+    self.startY = height - 120  -- Adjusted to account for folder navigation
     self.texPerRow = math.floor((self.panelWidth - self.padding * 2) / self.textureSize)
     local spacing = self.textureSize + self.padding
     
@@ -253,8 +332,40 @@ function UI:handleClick(x, y)
         return false
     end
     
+    -- Get window and panel coordinates
+    local width = lovr.system.getWindowWidth()
+    local height = lovr.system.getWindowHeight()
+    local panelX = width - self.panelWidth
+    
+    -- Convert click coordinates to match our UI coordinate system
+    -- UI uses top-down coordinates where 0 is at the top
+    local uiY = height - y
+    
+    -- Calculate folder navigation area position (matching the draw function)
+    local folderNavY = height - 70  -- This matches where we draw it
+    
+    -- Check if click is in the folder navigation area
+    -- Note: Since we're in UI coordinates now (y=0 at top), we check if uiY is near folderNavY
+    if math.abs(uiY - folderNavY) <= self.buttonHeight/2 then
+        -- Previous folder button (left arrow)
+        if x >= panelX and x < panelX + self.buttonWidth then
+            print("Previous folder clicked") -- Debug print
+            self:previousFolder()
+            return true
+        end
+        
+        -- Next folder button (right arrow)
+        local nextButtonX = panelX + self.panelWidth - self.buttonWidth
+        if x >= nextButtonX and x < panelX + self.panelWidth then
+            print("Next folder clicked") -- Debug print
+            self:nextFolder()
+            return true
+        end
+        
+        return true -- Clicked in folder navigation area but not on buttons
+    end
+    
     -- Convert click to panel-relative coordinates
-    local panelX = lovr.system.getWindowWidth() - self.panelWidth
     local relativeX = x - panelX - self.padding
     
     -- Get click Y in window coordinates (from top)
