@@ -21,12 +21,14 @@ local Block = {
     faceTextures = nil  -- Will be initialized when needed
 }
 
-function Block:new(x, y, z, texture)
+function Block:new(x, y, z, texture, textureInfo)
     local block = setmetatable({}, { __index = Block })
     block.position = lovr.math.newVec3(x, y, z)
     block.vertices = {1, 1, 1, 1}  -- Initialize all vertices at full height
     block.texture = texture
+    block.textureInfo = textureInfo  -- Store folder and number
     block.faceTextures = {}  -- Initialize empty face textures table
+    block.faceTextureInfos = {}  -- Store folder and number for each face
     return block
 end
 
@@ -143,16 +145,22 @@ function Block:drawHighlight(pass)
     pass:box(x, y + 0.5, z, scale, scale, scale)
 end
 
-function Block:setTexture(texture)
+function Block:setTexture(texture, textureInfo)
     self.texture = texture
-    self.faceTextures = {}  -- Reset face-specific textures
+    self.textureInfo = textureInfo
+    self.faceTextures = {}  -- Reset face textures
+    self.faceTextureInfos = {}  -- Reset face texture infos
 end
 
-function Block:setFaceTexture(face, texture)
+function Block:setFaceTexture(face, texture, textureInfo)
     if not self.faceTextures then
         self.faceTextures = {}
     end
+    if not self.faceTextureInfos then
+        self.faceTextureInfos = {}
+    end
     self.faceTextures[face] = texture
+    self.faceTextureInfos[face] = textureInfo
 end
 
 function Block:intersectFace(rayStart, rayDir)

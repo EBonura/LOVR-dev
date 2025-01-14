@@ -101,7 +101,7 @@ function World:handleClick(x, y, z)
             self.selectedBlock = block
             -- Sync UI texture selection with block's texture
             if self.ui and block.texture then
-                self.ui:setSelectedTextureByImage(block.texture)
+                self.ui:setSelectedTextureByImage(block.texture, block.textureInfo)
             end
         else
             self.selectedBlock = nil
@@ -115,18 +115,23 @@ function World:placeBlock(x, y, z)
         if block.position.x == x and 
            block.position.y == y and 
            block.position.z == z then
-            return false  -- Block already exists here
+            return false
         end
     end
     
     -- Get current texture from UI
     local texture = nil
+    local textureInfo = nil
     if self.ui and self.ui.selectedTexture then
         texture = self.ui.selectedTexture.texture
+        textureInfo = {
+            folder = self.ui.selectedTexture.folder,
+            number = self.ui.selectedTexture.number
+        }
     end
     
     -- Create and add new block
-    local block = Block:new(x, y, z, texture)
+    local block = Block:new(x, y, z, texture, textureInfo)
     table.insert(self.blocks, block)
     return true
 end

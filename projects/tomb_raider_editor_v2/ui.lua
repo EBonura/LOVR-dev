@@ -48,12 +48,21 @@ function UI:previousFolder()
 end
 
 function UI:loadTexturesFromCurrentFolder()
+    -- Store the current texture info before loading new folder
+    local previousTexture = nil
+    if self.selectedTexture then
+        previousTexture = {
+            folder = self.selectedTexture.folder,
+            number = self.selectedTexture.number
+        }
+    end
+
     local folder = self:getCurrentFolder()
     local folderPath = "textures/" .. folder .. "/"
     self.textures = {}
     
     -- Load all textures from the current folder
-    for i = 1, 14 do  -- Adjust range based on your texture count
+    for i = 1, 14 do
         local filename = string.format("Horror_%s_%02d-128x128.png", folder, i)
         local path = folderPath .. filename
         
@@ -70,42 +79,74 @@ function UI:loadTexturesFromCurrentFolder()
         end
     end
     
-    -- Select first texture by default if available
-    if #self.textures > 0 then
+    -- Only select first texture if we don't have a previous selection
+    if previousTexture then
+        -- Try to find the matching texture in new folder
+        if previousTexture.folder == folder then
+            for _, tex in ipairs(self.textures) do
+                if tex.number == previousTexture.number then
+                    self.selectedTexture = tex
+                    return
+                end
+            end
+        end
+    end
+    
+    -- Fall back to first texture only if no previous selection
+    if #self.textures > 0 and not self.selectedTexture then
         self.selectedTexture = self.textures[1]
     end
 end
 
 function UI:findTextureInFolder(texture, folder)
-    -- Generate all possible texture paths for this folder and try to match
-    local folderPath = "textures/" .. folder .. "/"
-    for i = 1, 14 do
-        local filename = string.format("Horror_%s_%02d-128x128.png", folder, i)
-        local path = folderPath .. filename
-        
-        -- Try to load this texture
-        local success, testTexture = pcall(lovr.graphics.newTexture, path)
-        if success then
-            -- If this is the texture we're looking for
-            if testTexture == texture then
-                print("Found matching texture in folder:", folder, "number:", i)
-                -- Load the textures for this folder
-                self.currentFolderIndex = self:getFolderIndex(folder)
-                self:loadTexturesFromCurrentFolder()
-                
-                -- Find and select the matching texture
-                for _, tex in ipairs(self.textures) do
-                    if tex.number == i then
-                        self.selectedTexture = tex
-                        return true
-                    end
-                end
-                return true
+    -- First, try to find the original texture's path
+    local originalPath = nil
+    for _, tex in ipairs(self.textures) do
+        if tex.texture == texture then
+            originalPath = tex.path
+            break
+        end
+    end
+    
+    -- If we couldn't find the original path, try to construct it from the pattern
+    if not originalPath then
+        local folderPath = "textures/" .. folder .. "/"
+        for i = 1, 14 do
+            local filename = string.format("Horror_%s_%02d-128x128.png", folder, i)
+            local path = folderPath .. filename
+            
+            -- Try to load this texture
+            local success, testTexture = pcall(lovr.graphics.newTexture, path)
+            if success and testTexture == texture then
+                originalPath = path
+                break
             end
         end
     end
+    
+    if not originalPath then
+        return false
+    end
+    
+    -- Switch to the target folder and load its textures
+    local prevIndex = self.currentFolderIndex
+    self.currentFolderIndex = self:getFolderIndex(folder)
+    self:loadTexturesFromCurrentFolder()
+    
+    -- Find and select the matching texture by comparing paths
+    for _, tex in ipairs(self.textures) do
+        if tex.path == originalPath then
+            self.selectedTexture = tex
+            return true
+        end
+    end
+    
+    -- If we didn't find a match, revert to the previous folder
+    self.currentFolderIndex = prevIndex
+    self:loadTexturesFromCurrentFolder()
     return false
 end
+
 
 function UI:getFolderIndex(folderName)
     for i, folder in ipairs(self.availableFolders) do
@@ -116,29 +157,75 @@ function UI:getFolderIndex(folderName)
     return 1  -- Default to first folder if not found
 end
 
-function UI:setSelectedTextureByImage(texture)
-    if not texture then return false end
-    print("Starting search for texture")
-    
-    -- First try current folder
+function UI:getTextureFilenameFromObject(texture)
+    -- Try to find the texture in current folder first
     for _, tex in ipairs(self.textures) do
         if tex.texture == texture then
-            print("Found in current folder:", self:getCurrentFolder())
+            return string.format("Horror_%s_%02d-128x128.png", tex.folder, tex.number)
+        end
+    end
+    return nil
+end
+
+function UI:getTextureInfo(texture)
+    print("getTextureInfo: Looking for texture in current folder:", self:getCurrentFolder())
+    -- Try to find it in current folder first
+    for _, tex in ipairs(self.textures) do
+        if tex.texture == texture then
+            print("getTextureInfo: Found in current folder!", tex.folder, tex.number)
+            return {
+                folder = tex.folder,
+                number = tex.number
+            }
+        end
+    end
+    
+    -- Get the original texture's filename pattern
+    local origFilename = self:getTextureFilenameFromObject(texture)
+    if origFilename then
+        print("getTextureInfo: Got original filename:", origFilename)
+        
+        -- Extract folder and number from filename
+        local folder, number = origFilename:match("Horror_([^_]+)_(%d+)")
+        if folder and number then
+            number = tonumber(number)
+            print("getTextureInfo: Extracted folder and number:", folder, number)
+            return {
+                folder = folder,
+                number = number
+            }
+        end
+    end
+    
+    print("getTextureInfo: Texture not found in any folder")
+    return nil
+end
+
+function UI:setSelectedTextureByImage(texture, textureInfo)
+    if not texture or not textureInfo then 
+        print("setSelectedTextureByImage: No texture or info")
+        return false 
+    end
+    
+    print("setSelectedTextureByImage: Looking for", textureInfo.folder, textureInfo.number)
+    
+    -- Switch to the correct folder if needed
+    if textureInfo.folder ~= self:getCurrentFolder() then
+        print("setSelectedTextureByImage: Switching folder from", self:getCurrentFolder(), "to", textureInfo.folder)
+        self.currentFolderIndex = self:getFolderIndex(textureInfo.folder)
+        self:loadTexturesFromCurrentFolder()
+    end
+    
+    -- Find and select the texture with matching number
+    for _, tex in ipairs(self.textures) do
+        if tex.folder == textureInfo.folder and tex.number == textureInfo.number then
+            print("setSelectedTextureByImage: Found matching texture")
             self.selectedTexture = tex
             return true
         end
     end
     
-    print("Not found in current folder, searching all folders")
-    -- Try each folder until we find the texture
-    for _, folder in ipairs(self.availableFolders) do
-        print("Checking folder:", folder)
-        if self:findTextureInFolder(texture, folder) then
-            return true
-        end
-    end
-    
-    print("Texture not found in any folder")
+    print("setSelectedTextureByImage: No matching texture found")
     return false
 end
 
@@ -371,65 +458,54 @@ function UI:handleClick(x, y)
     local height = lovr.system.getWindowHeight()
     local panelX = width - self.panelWidth
     
-    -- Convert click coordinates to match our UI coordinate system
-    -- UI uses top-down coordinates where 0 is at the top
     local uiY = height - y
+    local folderNavY = height - 70
     
-    -- Calculate folder navigation area position (matching the draw function)
-    local folderNavY = height - 70  -- This matches where we draw it
-    
-    -- Check if click is in the folder navigation area
-    -- Note: Since we're in UI coordinates now (y=0 at top), we check if uiY is near folderNavY
     if math.abs(uiY - folderNavY) <= self.buttonHeight/2 then
-        -- Previous folder button (left arrow)
         if x >= panelX and x < panelX + self.buttonWidth then
-            print("Previous folder clicked") -- Debug print
+            print("Previous folder clicked")
             self:previousFolder()
             return true
         end
         
-        -- Next folder button (right arrow)
         local nextButtonX = panelX + self.panelWidth - self.buttonWidth
         if x >= nextButtonX and x < panelX + self.panelWidth then
-            print("Next folder clicked") -- Debug print
+            print("Next folder clicked")
             self:nextFolder()
             return true
         end
-        
-        return true -- Clicked in folder navigation area but not on buttons
+        return true
     end
     
-    -- Convert click to panel-relative coordinates
     local relativeX = x - panelX - self.padding
-    
-    -- Get click Y in window coordinates (from top)
     local windowY = lovr.system.getWindowHeight() - y
-    
-    -- Calculate how far down from the start of texture grid we clicked
     local verticalOffset = self.startY - windowY
-    
-    -- Calculate row and column
     local spacing = self.textureSize + self.padding
     local row = math.floor(verticalOffset / spacing)
     local col = math.floor(relativeX / spacing)
-    
-    -- Calculate index
     local index = row * self.texPerRow + col + 1
     
-    -- Check if we clicked a valid texture
     if index >= 1 and index <= #self.textures and col < self.texPerRow and row >= 0 then
-        self.selectedTexture = self.textures[index]
+        local selectedTex = self.textures[index]
+        self.selectedTexture = selectedTex
+        
+        -- Create texture info
+        local textureInfo = {
+            folder = selectedTex.folder,
+            number = selectedTex.number
+        }
         
         -- Update textures based on mode
         if self.world then
             if self.world.currentMode == self.world.MODE_SELECT and self.world.selectedBlock then
                 -- In block select mode, update entire block
-                self.world.selectedBlock:setTexture(self.selectedTexture.texture)
+                self.world.selectedBlock:setTexture(selectedTex.texture, textureInfo)
             elseif self.world.currentMode == self.world.MODE_FACE_SELECT and self.world.selectedFace then
                 -- In face select mode, update only selected face
                 self.world.selectedFace.block:setFaceTexture(
                     self.world.selectedFace.face,
-                    self.selectedTexture.texture
+                    selectedTex.texture,
+                    textureInfo
                 )
             end
         end
