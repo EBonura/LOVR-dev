@@ -483,18 +483,22 @@ function UI:handleClick(x, y)
         
         -- Update textures based on mode
         if self.world then
-            if self.world.currentMode == self.world.MODE_SELECT and self.world.selectedBlock then
-                -- In block select mode, update entire block
-                self.world.selectedBlock:setTexture(selectedTex.texture, textureInfo)
-            elseif self.world.currentMode == self.world.MODE_FACE_SELECT and self.world.selectedFace then
-                -- In face select mode, update only selected face
-                local block = self.world.selectedFace.block
-                local face = self.world.selectedFace.face
-                block:setFaceTexture(
-                    face,
-                    selectedTex.texture,
-                    textureInfo
-                )
+            if self.world.currentMode == self.world.MODE_SELECT then
+                -- In block select mode, update all selected blocks
+                for _, block in ipairs(self.world.selectedBlocks) do
+                    block:setTexture(selectedTex.texture, textureInfo)
+                end
+            elseif self.world.currentMode == self.world.MODE_FACE_SELECT then
+                -- In face select mode, update all selected faces
+                for _, faceInfo in ipairs(self.world.selectedFaces) do
+                    local block = faceInfo.block
+                    local face = faceInfo.face
+                    block:setFaceTexture(
+                        face,
+                        selectedTex.texture,
+                        textureInfo
+                    )
+                end
             end
         end
         

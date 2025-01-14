@@ -21,6 +21,8 @@ local World = {
     
     -- Selection handling
     selectedBlock = nil,
+    selectedBlocks = {},  -- Table to store multiple selected blocks
+    selectedFaces = {},   -- Table to store multiple selected faces
     highlightedBlock = nil  -- For hovering before selection
 }
 
@@ -44,16 +46,15 @@ function World:setMode(mode)
         -- Clear selections when switching modes
         if mode == self.MODE_PLACE then
             self.selectedBlock = nil
+            self.selectedBlocks = {}
             self.highlightedBlock = nil
             self.selectedFace = nil
+            self.selectedFaces = {}
             self.hoveredFace = nil
         elseif mode == self.MODE_FACE_SELECT then
             -- Keep selected block when switching to face select
             self.selectedFace = nil
-            self.hoveredFace = nil
-            
-            -- Clear face selection when entering face select mode
-            self.selectedFace = nil
+            self.selectedFaces = {}
             self.hoveredFace = nil
         end
     end
@@ -96,13 +97,33 @@ function World:deleteBlock(x, y, z)
     return false
 end
 
-function World:handleClick(x, y, z)
+function World:handleClick(x, y, z, isShiftHeld)
     if self.currentMode == self.MODE_PLACE then
         self:placeBlock(x, y, z)
     elseif self.currentMode == self.MODE_SELECT then
         local block = self:findBlockAt(x, y, z)
         if block then
-            self.selectedBlock = block
+            if isShiftHeld then
+                -- Add to or remove from multi-selection
+                local isAlreadySelected = false
+                for i, selectedBlock in ipairs(self.selectedBlocks) do
+                    if selectedBlock == block then
+                        table.remove(self.selectedBlocks, i)
+                        isAlreadySelected = true
+                        break
+                    end
+                end
+                if not isAlreadySelected then
+                    table.insert(self.selectedBlocks, block)
+                end
+                -- Update primary selection
+                self.selectedBlock = block
+            else
+                -- Single selection
+                self.selectedBlock = block
+                self.selectedBlocks = {block}
+            end
+            
             -- Sync UI texture selection with block's texture
             if self.ui then
                 -- Get texture from front face as default
@@ -112,16 +133,48 @@ function World:handleClick(x, y, z)
                     self.ui:setSelectedTextureByImage(frontTexture, frontTextureInfo)
                 end
             end
-        else
+        elseif not isShiftHeld then
+            -- Clear selection only if shift is not held
             self.selectedBlock = nil
+            self.selectedBlocks = {}
         end
     elseif self.currentMode == self.MODE_FACE_SELECT and self.hoveredFace then
         -- In face select mode, handle face selection
-        self.selectedFace = {
-            block = self.hoveredFace.block,
-            face = self.hoveredFace.face
-        }
-        -- Sync UI texture selection with face texture or block texture
+        if isShiftHeld then
+            -- Add to or remove from multi-selection
+            local isAlreadySelected = false
+            for i, selectedFace in ipairs(self.selectedFaces) do
+                if selectedFace.block == self.hoveredFace.block and 
+                   selectedFace.face == self.hoveredFace.face then
+                    table.remove(self.selectedFaces, i)
+                    isAlreadySelected = true
+                    break
+                end
+            end
+            if not isAlreadySelected then
+                table.insert(self.selectedFaces, {
+                    block = self.hoveredFace.block,
+                    face = self.hoveredFace.face
+                })
+            end
+            -- Update primary selection
+            self.selectedFace = {
+                block = self.hoveredFace.block,
+                face = self.hoveredFace.face
+            }
+        else
+            -- Single selection
+            self.selectedFace = {
+                block = self.hoveredFace.block,
+                face = self.hoveredFace.face
+            }
+            self.selectedFaces = {{
+                block = self.hoveredFace.block,
+                face = self.hoveredFace.face
+            }}
+        end
+        
+        -- Sync UI texture selection with face texture
         if self.ui then
             local block = self.selectedFace.block
             local face = self.selectedFace.face
@@ -166,19 +219,23 @@ function World:drawBlock(pass, block)
     -- In face select mode, pass face information to block
     if self.currentMode == self.MODE_FACE_SELECT then
         local hoveredFaceName = self.hoveredFace and self.hoveredFace.block == block and self.hoveredFace.face or nil
-        local selectedFaceName = self.selectedFace and self.selectedFace.block == block and self.selectedFace.face or nil
-        block:draw(pass, hoveredFaceName, selectedFaceName)
+        block:draw(pass, hoveredFaceName, self.selectedFaces)
     else
         -- In other modes, just draw normally
         block:draw(pass)
     end
     
-    -- Draw selection highlight only in SELECT mode
+    -- Draw selection highlights in SELECT mode
     if self.currentMode == self.MODE_SELECT then
-        if block == self.selectedBlock then
-            pass:setColor(1, 1, 0, 0.05)  -- Yellow for selection
-            block:drawHighlight(pass)
-        elseif block == self.highlightedBlock then
+        -- Draw multi-selection highlights
+        for _, selectedBlock in ipairs(self.selectedBlocks) do
+            if selectedBlock == block then
+                pass:setColor(1, 1, 0, 0.05)  -- Yellow for selection
+                block:drawHighlight(pass)
+            end
+        end
+        -- Draw hover highlight
+        if block == self.highlightedBlock then
             pass:setColor(0.5, 0.5, 1, 0.1)  -- Blue for hover
             block:drawHighlight(pass)
         end

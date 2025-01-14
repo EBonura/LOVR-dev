@@ -54,7 +54,19 @@ function Block:getCornerPosition(index)
            self.position.z + zOffset
 end
 
-function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHighlighted)
+function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selectedFaces)
+    -- Check if this face is selected
+    local isSelected = false
+    if selectedFaces then
+        for _, faceInfo in ipairs(selectedFaces) do
+            if faceInfo.block == self and faceInfo.face == faceName then
+                isSelected = true
+                break
+            end
+        end
+    end
+    
+    local isHighlighted = isHovered or isSelected
     local faceTexture = self.faceTextures[faceName]
     local center = (v1 + v2 + v3 + v4) / 4
     local width = vec3(v2 - v1):length()
@@ -108,7 +120,7 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHighlighted)
     pass:line(v3, v1)
 end
 
-function Block:draw(pass, hoveredFace, selectedFace)
+function Block:draw(pass, hoveredFace, selectedFaces)
     -- Get all corner positions
     local corners = {}
     for i = 1, 4 do
@@ -126,21 +138,21 @@ function Block:draw(pass, hoveredFace, selectedFace)
     -- Draw faces with proper normals
     -- Bottom face
     self:drawFace(pass, bottomCorners[1], bottomCorners[2], bottomCorners[3], bottomCorners[4],
-                 vec3(0, -1, 0), "bottom", hoveredFace == "bottom" or selectedFace == "bottom")
+                 vec3(0, -1, 0), "bottom", hoveredFace == "bottom", selectedFaces)
     
     -- Top face
     self:drawFace(pass, corners[1], corners[2], corners[3], corners[4],
-                 vec3(0, 1, 0), "top", hoveredFace == "top" or selectedFace == "top")
+                 vec3(0, 1, 0), "top", hoveredFace == "top", selectedFaces)
     
     -- Side faces
     self:drawFace(pass, corners[1], corners[2], bottomCorners[1], bottomCorners[2],
-                 vec3(0, 0, -1), "back", hoveredFace == "back" or selectedFace == "back")
+                 vec3(0, 0, -1), "back", hoveredFace == "back", selectedFaces)
     self:drawFace(pass, corners[2], corners[4], bottomCorners[2], bottomCorners[4],
-                 vec3(1, 0, 0), "right", hoveredFace == "right" or selectedFace == "right")
+                 vec3(1, 0, 0), "right", hoveredFace == "right", selectedFaces)
     self:drawFace(pass, corners[4], corners[3], bottomCorners[4], bottomCorners[3],
-                 vec3(0, 0, 1), "front", hoveredFace == "front" or selectedFace == "front")
+                 vec3(0, 0, 1), "front", hoveredFace == "front", selectedFaces)
     self:drawFace(pass, corners[3], corners[1], bottomCorners[3], bottomCorners[1],
-                 vec3(-1, 0, 0), "left", hoveredFace == "left" or selectedFace == "left")
+                 vec3(-1, 0, 0), "left", hoveredFace == "left", selectedFaces)
 end
 
 function Block:drawHighlight(pass)

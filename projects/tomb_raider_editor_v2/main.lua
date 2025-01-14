@@ -153,10 +153,13 @@ function lovr.mousepressed(x, y, button)
             local gridX = math.floor(intersection.x + 0.5)
             local gridZ = math.floor(intersection.z + 0.5)
             
+            -- Check if shift is held
+            local isShiftHeld = lovr.system.isKeyDown('lshift') or lovr.system.isKeyDown('rshift')
+            
             if scene.world.currentMode == scene.world.MODE_FACE_SELECT then
                 -- If we have a hovered face, handle the selection in world
                 if scene.world.hoveredFace then
-                    scene.world:handleClick(gridX, scene.world.currentGridY, gridZ)  -- Let world handle the face selection and UI sync
+                    scene.world:handleClick(gridX, scene.world.currentGridY, gridZ, isShiftHeld)  -- Let world handle the face selection and UI sync
                 end
             else
                 -- Handle PLACE and SELECT modes
@@ -167,7 +170,7 @@ function lovr.mousepressed(x, y, button)
                     scene.world:deleteBlock(gridX, scene.world.currentGridY, gridZ)
                 else
                     -- Single click - normal block placement/selection
-                    scene.world:handleClick(gridX, scene.world.currentGridY, gridZ)
+                    scene.world:handleClick(gridX, scene.world.currentGridY, gridZ, isShiftHeld)
                 end
                 lastClickTime = currentTime
             end
