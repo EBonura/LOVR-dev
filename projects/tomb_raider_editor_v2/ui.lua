@@ -76,44 +76,70 @@ function UI:loadTexturesFromCurrentFolder()
     end
 end
 
+function UI:findTextureInFolder(texture, folder)
+    -- Generate all possible texture paths for this folder and try to match
+    local folderPath = "textures/" .. folder .. "/"
+    for i = 1, 14 do
+        local filename = string.format("Horror_%s_%02d-128x128.png", folder, i)
+        local path = folderPath .. filename
+        
+        -- Try to load this texture
+        local success, testTexture = pcall(lovr.graphics.newTexture, path)
+        if success then
+            -- If this is the texture we're looking for
+            if testTexture == texture then
+                print("Found matching texture in folder:", folder, "number:", i)
+                -- Load the textures for this folder
+                self.currentFolderIndex = self:getFolderIndex(folder)
+                self:loadTexturesFromCurrentFolder()
+                
+                -- Find and select the matching texture
+                for _, tex in ipairs(self.textures) do
+                    if tex.number == i then
+                        self.selectedTexture = tex
+                        return true
+                    end
+                end
+                return true
+            end
+        end
+    end
+    return false
+end
+
+function UI:getFolderIndex(folderName)
+    for i, folder in ipairs(self.availableFolders) do
+        if folder == folderName then
+            return i
+        end
+    end
+    return 1  -- Default to first folder if not found
+end
+
 function UI:setSelectedTextureByImage(texture)
     if not texture then return false end
     print("Starting search for texture")
     
     -- First try current folder
-    local foundInCurrentFolder = false
     for _, tex in ipairs(self.textures) do
         if tex.texture == texture then
-            foundInCurrentFolder = true
-            self.selectedTexture = tex
             print("Found in current folder:", self:getCurrentFolder())
-            break
+            self.selectedTexture = tex
+            return true
         end
     end
     
-    if not foundInCurrentFolder then
-        print("Not found in current folder, searching all folders")
-        -- Try each folder until we find the texture
-        for i, folderName in ipairs(self.availableFolders) do
-            print("Checking folder:", folderName)
-            -- Switch folder
-            self.currentFolderIndex = i
-            -- Load textures for this folder
-            self:loadTexturesFromCurrentFolder()
-            
-            -- Check if texture is in this folder
-            for _, tex in ipairs(self.textures) do
-                if tex.texture == texture then
-                    print("Found texture in folder:", folderName)
-                    self.selectedTexture = tex
-                    -- Important: don't return here, we want to keep this folder active
-                    return true
-                end
-            end
+    print("Not found in current folder, searching all folders")
+    -- Try each folder until we find the texture
+    for _, folder in ipairs(self.availableFolders) do
+        print("Checking folder:", folder)
+        if self:findTextureInFolder(texture, folder) then
+            return true
         end
     end
     
-    return foundInCurrentFolder
+    print("Texture not found in any folder")
+    return false
 end
 
 function UI:drawModeIndicator(pass)
