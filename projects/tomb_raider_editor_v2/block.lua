@@ -130,6 +130,7 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
     -- First, draw the textured face
     if faceTexture then
         pass:setColor(1, 1, 1, 1)  -- Full opacity for texture
+        pass:setSampler('nearest')  -- Set nearest neighbor filtering for pixelated look
         pass:setMaterial(faceTexture)
         pass:push()
         pass:translate(center)
