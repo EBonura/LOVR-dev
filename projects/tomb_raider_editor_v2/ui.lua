@@ -21,6 +21,17 @@ function UI:new(camera)
     return ui
 end
 
+function UI:setSelectedTextureByImage(texture)
+    -- Find and select the texture entry that matches the given texture
+    for _, tex in ipairs(self.textures) do
+        if tex.texture == texture then
+            self.selectedTexture = tex
+            return true
+        end
+    end
+    return false
+end
+
 function UI:loadTextures()
     -- Load all brick textures
     local brickPath = "textures/Brick/"

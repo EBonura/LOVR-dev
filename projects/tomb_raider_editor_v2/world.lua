@@ -84,6 +84,10 @@ function World:handleClick(x, y, z)
         local block = self:findBlockAt(x, y, z)
         if block then
             self.selectedBlock = block
+            -- Sync UI texture selection with block's texture
+            if self.ui and block.texture then
+                self.ui:setSelectedTextureByImage(block.texture)
+            end
         else
             self.selectedBlock = nil
         end
