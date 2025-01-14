@@ -14,8 +14,9 @@ local UI = {
     modeIndicatorWidth = 200,
     modeIndicatorHeight = 40,
     modeColors = {
-        PLACE = {0.2, 0.8, 0.2, 0.8},  -- Green for place mode
-        SELECT = {0.2, 0.2, 0.8, 0.8}   -- Blue for select mode
+        PLACE = {0.2, 0.8, 0.2, 0.8},       -- Green for place mode
+        SELECT = {0.2, 0.2, 0.8, 0.8},      -- Blue for select mode
+        FACE_SELECT = {0.8, 0.2, 0.8, 0.8}  -- Purple for face select mode
     }
 }
 

@@ -12,6 +12,11 @@ local World = {
     -- Mode handling
     MODE_PLACE = "PLACE",
     MODE_SELECT = "SELECT",
+    MODE_FACE_SELECT = "FACE_SELECT",  -- New mode
+
+    selectedFace = nil,  -- Will store {block = blockRef, face = "front"|"back"|"left"|"right"|"top"|"bottom"}
+    hoveredFace = nil,   -- Same structure as selectedFace
+
     currentMode = "PLACE",  -- Default mode
     
     -- Selection handling
@@ -32,12 +37,20 @@ function World:setUI(ui)
 end
 
 function World:setMode(mode)
-    if mode == self.MODE_PLACE or mode == self.MODE_SELECT then
+    if mode == self.MODE_PLACE or 
+       mode == self.MODE_SELECT or 
+       mode == self.MODE_FACE_SELECT then
         self.currentMode = mode
-        -- Clear selection when switching to place mode
+        -- Clear selections when switching modes
         if mode == self.MODE_PLACE then
             self.selectedBlock = nil
             self.highlightedBlock = nil
+            self.selectedFace = nil
+            self.hoveredFace = nil
+        elseif mode == self.MODE_FACE_SELECT then
+            -- Keep selected block when switching to face select
+            self.selectedFace = nil
+            self.hoveredFace = nil
         end
     end
 end
@@ -45,6 +58,8 @@ end
 function World:toggleMode()
     if self.currentMode == self.MODE_PLACE then
         self:setMode(self.MODE_SELECT)
+    elseif self.currentMode == self.MODE_SELECT then
+        self:setMode(self.MODE_FACE_SELECT)
     else
         self:setMode(self.MODE_PLACE)
     end
