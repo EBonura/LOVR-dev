@@ -28,10 +28,7 @@ function World:placeBlock(x, y, z)
     
     -- Create and add new block
     local block = Block:new(x, y, z)
-    -- For now, set default heights (we'll add height editing later)
-    for i = 1, 4 do
-        block:setVertexHeight(i, 1)  -- Set all vertices to base height
-    end
+    -- All vertices start at full height by default
     table.insert(self.blocks, block)
     return true
 end

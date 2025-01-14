@@ -2,37 +2,36 @@ local Block = {
     -- Position in world space (center of block base)
     position = nil,
     
-    -- Corner heights (0 = base, 1 = full height)
+    -- Corner heights (1 = full height, lower values pull down)
     -- Ordered: -x-z, +x-z, -x+z, +x+z (counter-clockwise from back left)
-    vertices = {0, 0, 0, 0},
+    vertices = {1, 1, 1, 1},  -- Start at full height
     
     -- Standard block dimensions
     width = 1,
     depth = 1,
     height = 1,
     
-    -- Height levels available (0, 0.33, 0.66, 1)
-    heightLevels = {0, 0.33, 0.66, 1}
+    -- Height levels available (1 = full height, going down)
+    heightLevels = {1, 0.66, 0.33, 0}
 }
 
 function Block:new(x, y, z)
     local block = setmetatable({}, { __index = Block })
     block.position = lovr.math.newVec3(x, y, z)
-    block.vertices = {0, 0, 0, 0}  -- Initialize vertices array
+    block.vertices = {1, 1, 1, 1}  -- Initialize all vertices at full height
     return block
 end
 
 function Block:setVertexHeight(index, level)
-    -- level should be 1-4 (representing the 4 possible heights)
+    -- level should be 1-4 (1 = full height, 4 = lowest)
     if index >= 1 and index <= 4 and level >= 1 and level <= 4 then
         self.vertices[index] = self.heightLevels[level]
     end
 end
 
 function Block:getCornerPosition(index)
-    -- Determine X offset: +0.5 for vertices 2 and 4, -0.5 for vertices 1 and 3
+    -- Define offsets for a 1x1 block (±0.5 in each direction)
     local xOffset = ((index == 2) or (index == 4)) and 0.5 or -0.5
-    -- Determine Z offset: +0.5 for vertices 3 and 4, -0.5 for vertices 1 and 2
     local zOffset = ((index == 3) or (index == 4)) and 0.5 or -0.5
     
     return self.position.x + xOffset,
