@@ -14,21 +14,26 @@ local Block = {
     -- Height levels available (1 = full height, going down)
     heightLevels = {1, 0.66, 0.33, 0},
 
-    -- Texture for all faces (default texture)
-    texture = nil,
-    
-    -- Per-face textures
-    faceTextures = nil  -- Will be initialized when needed
+    -- Store textures for each face
+    faceTextures = nil,  -- Will store textures for all 6 faces
+    faceTextureInfos = nil  -- Will store texture info for all 6 faces
 }
 
 function Block:new(x, y, z, texture, textureInfo)
     local block = setmetatable({}, { __index = Block })
     block.position = lovr.math.newVec3(x, y, z)
     block.vertices = {1, 1, 1, 1}  -- Initialize all vertices at full height
-    block.texture = texture
-    block.textureInfo = textureInfo  -- Store folder and number
-    block.faceTextures = {}  -- Initialize empty face textures table
-    block.faceTextureInfos = {}  -- Store folder and number for each face
+    block.faceTextures = {}
+    block.faceTextureInfos = {}
+    
+    -- Initialize all faces with the provided texture if any
+    if texture and textureInfo then
+        local faces = {"front", "back", "left", "right", "top", "bottom"}
+        for _, face in ipairs(faces) do
+            block.faceTextures[face] = texture
+            block.faceTextureInfos[face] = textureInfo
+        end
+    end
     return block
 end
 
@@ -50,7 +55,7 @@ function Block:getCornerPosition(index)
 end
 
 function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHighlighted)
-    local faceTexture = self.faceTextures[faceName] or self.texture
+    local faceTexture = self.faceTextures[faceName]
     local center = (v1 + v2 + v3 + v4) / 4
     local width = vec3(v2 - v1):length()
     local height = vec3(v3 - v1):length()
@@ -146,22 +151,10 @@ function Block:drawHighlight(pass)
 end
 
 function Block:setTexture(texture, textureInfo)
-    self.texture = texture
-    self.textureInfo = textureInfo
-    
-    -- Initialize face tables if they don't exist
-    if not self.faceTextures then
-        self.faceTextures = {}
-    end
-    if not self.faceTextureInfos then
-        self.faceTextureInfos = {}
-    end
-    
     -- Set the same texture for all faces
     local faces = {"front", "back", "left", "right", "top", "bottom"}
     for _, face in ipairs(faces) do
-        self.faceTextures[face] = texture
-        self.faceTextureInfos[face] = textureInfo
+        self:setFaceTexture(face, texture, textureInfo)
     end
 end
 
