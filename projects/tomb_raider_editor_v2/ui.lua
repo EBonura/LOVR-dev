@@ -97,9 +97,24 @@ function UI:draw(pass)
         0,
         'left'
     )
+
+    -- Draw selected texture info right below title
+    if self.selectedTexture then
+        pass:text(
+            "Selected: " .. self.selectedTexture.name,
+            panelX + self.padding,
+            height - 50,
+            0,
+            0.4,
+            0,
+            0, 1, 0,
+            0,
+            'left'
+        )
+    end
     
-    -- Update class variables for click detection
-    self.startY = height - 60  -- Start below title
+    -- Update class variables for click detection - moved down for more space
+    self.startY = height - 80  -- Start below title and selected texture info
     self.texPerRow = math.floor((self.panelWidth - self.padding * 2) / self.textureSize)
     local spacing = self.textureSize + self.padding
     
@@ -125,9 +140,7 @@ function UI:draw(pass)
         
         -- Draw selection highlight if this is the selected texture
         if self.selectedTexture == tex then
-            -- Draw red selection box
             pass:setColor(1, 0, 0, 1)
-            -- Draw red selection box with proper Z coordinates
             pass:line(
                 x, y, 0,
                 x + self.textureSize, y, 0
@@ -160,21 +173,6 @@ function UI:draw(pass)
         0,
         'left'
     )
-
-    -- Draw selected texture info
-    if self.selectedTexture then
-        pass:text(
-            "Selected: " .. self.selectedTexture.name,
-            panelX + self.padding,
-            30,
-            0,
-            0.6,
-            0,
-            0, 1, 0,
-            0,
-            'left'
-        )
-    end
 end
 
 function UI:isPointInPanel(x, y)
@@ -190,20 +188,24 @@ function UI:handleClick(x, y)
     -- Convert click to panel-relative coordinates
     local panelX = lovr.system.getWindowWidth() - self.panelWidth
     local relativeX = x - panelX - self.padding
-    local relativeY = self.startY - y  -- Use stored startY
     
-    -- Calculate grid position
+    -- Get click Y in window coordinates (from top)
+    local windowY = lovr.system.getWindowHeight() - y
+    
+    -- Calculate how far down from the start of texture grid we clicked
+    local verticalOffset = self.startY - windowY
+    
+    -- Calculate row and column
     local spacing = self.textureSize + self.padding
+    local row = math.floor(verticalOffset / spacing)
     local col = math.floor(relativeX / spacing)
-    local row = math.floor(relativeY / spacing)
     
     -- Calculate index
     local index = row * self.texPerRow + col + 1
     
     -- Check if we clicked a valid texture
-    if index >= 1 and index <= #self.textures then
+    if index >= 1 and index <= #self.textures and col < self.texPerRow and row >= 0 then
         self.selectedTexture = self.textures[index]
-        print("Selected texture: " .. self.selectedTexture.name)  -- Debug print
         return true
     end
     
