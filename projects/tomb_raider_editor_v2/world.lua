@@ -145,10 +145,10 @@ function World:drawBlock(pass, block)
     -- Draw selection highlight only in SELECT mode
     if self.currentMode == self.MODE_SELECT then
         if block == self.selectedBlock then
-            pass:setColor(1, 1, 0, 0.3)  -- Yellow for selection
+            pass:setColor(1, 1, 0, 0.05)  -- Yellow for selection
             block:drawHighlight(pass)
         elseif block == self.highlightedBlock then
-            pass:setColor(0.5, 0.5, 1, 0.3)  -- Blue for hover
+            pass:setColor(0.5, 0.5, 1, 0.1)  -- Blue for hover
             block:drawHighlight(pass)
         end
     end

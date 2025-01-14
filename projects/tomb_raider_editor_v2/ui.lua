@@ -275,12 +275,18 @@ function UI:handleClick(x, y)
     if index >= 1 and index <= #self.textures and col < self.texPerRow and row >= 0 then
         self.selectedTexture = self.textures[index]
         
-        -- If we have a world reference and there's a selected block in SELECT mode,
-        -- update its texture
-        if self.world and 
-           self.world.currentMode == self.world.MODE_SELECT and 
-           self.world.selectedBlock then
-            self.world.selectedBlock:setTexture(self.selectedTexture.texture)
+        -- Update textures based on mode
+        if self.world then
+            if self.world.currentMode == self.world.MODE_SELECT and self.world.selectedBlock then
+                -- In block select mode, update entire block
+                self.world.selectedBlock:setTexture(self.selectedTexture.texture)
+            elseif self.world.currentMode == self.world.MODE_FACE_SELECT and self.world.selectedFace then
+                -- In face select mode, update only selected face
+                self.world.selectedFace.block:setFaceTexture(
+                    self.world.selectedFace.face,
+                    self.selectedTexture.texture
+                )
+            end
         end
         
         return true

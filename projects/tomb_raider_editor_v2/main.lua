@@ -157,12 +157,11 @@ function lovr.mousepressed(x, y, button)
                 -- If we have a hovered face, select it
                 if scene.world.hoveredFace then
                     scene.world.selectedFace = scene.world.hoveredFace
-                    -- If there's a texture selected in the UI, apply it to the face
-                    if scene.ui.selectedTexture then
-                        scene.world.selectedFace.block:setFaceTexture(
-                            scene.world.selectedFace.face,
-                            scene.ui.selectedTexture.texture
-                        )
+                    -- Sync UI texture selection with face texture
+                    if scene.ui then
+                        local block = scene.world.selectedFace.block
+                        local faceTexture = block.faceTextures[scene.world.selectedFace.face] or block.texture
+                        scene.ui:setSelectedTextureByImage(faceTexture)
                     end
                 end
             else
