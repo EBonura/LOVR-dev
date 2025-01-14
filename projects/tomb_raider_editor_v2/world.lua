@@ -61,6 +61,22 @@ function World:findBlockAt(x, y, z)
     return nil
 end
 
+function World:deleteBlock(x, y, z)
+    for i = #self.blocks, 1, -1 do
+        local block = self.blocks[i]
+        if block.position.x == x and 
+           block.position.y == y and 
+           block.position.z == z then
+            table.remove(self.blocks, i)
+            if block == self.selectedBlock then
+                self.selectedBlock = nil
+            end
+            return true
+        end
+    end
+    return false
+end
+
 function World:handleClick(x, y, z)
     if self.currentMode == self.MODE_PLACE then
         self:placeBlock(x, y, z)

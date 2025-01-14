@@ -9,6 +9,9 @@ local scene = {
     ui = nil
 }
 
+local lastClickTime = 0
+local DOUBLE_CLICK_TIME = 0.3  -- Time window for double click in seconds
+
 function lovr.load()
     scene.camera = Camera:new()
     scene.world = World:new(scene.camera)
@@ -106,6 +109,7 @@ function calculateRayIntersection()
     return intersection, t
 end
 
+-- Modify the mousepressed function
 function lovr.mousepressed(x, y, button)
     -- Check if mouse is in UI area first
     if scene.ui:isPointInPanel(x, y) then
@@ -124,7 +128,17 @@ function lovr.mousepressed(x, y, button)
         if t > 0 then
             local gridX = math.floor(intersection.x + 0.5)
             local gridZ = math.floor(intersection.z + 0.5)
-            scene.world:handleClick(gridX, scene.world.currentGridY, gridZ)
+            
+            -- Check for double click
+            local currentTime = lovr.timer.getTime()
+            if currentTime - lastClickTime < DOUBLE_CLICK_TIME then
+                -- Double click detected
+                scene.world:deleteBlock(gridX, scene.world.currentGridY, gridZ)
+            else
+                -- Single click - normal block placement/selection
+                scene.world:handleClick(gridX, scene.world.currentGridY, gridZ)
+            end
+            lastClickTime = currentTime
         end
     end
     
