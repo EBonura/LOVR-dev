@@ -132,16 +132,25 @@ function World:placeBlock(x, y, z)
 end
 
 function World:drawBlock(pass, block)
-    -- Normal block drawing
-    block:draw(pass)
+    -- In face select mode, pass face information to block
+    if self.currentMode == self.MODE_FACE_SELECT then
+        local hoveredFaceName = self.hoveredFace and self.hoveredFace.block == block and self.hoveredFace.face or nil
+        local selectedFaceName = self.selectedFace and self.selectedFace.block == block and self.selectedFace.face or nil
+        block:draw(pass, hoveredFaceName, selectedFaceName)
+    else
+        -- In other modes, just draw normally
+        block:draw(pass)
+    end
     
-    -- Draw selection highlight if this is the selected or highlighted block
-    if block == self.selectedBlock then
-        pass:setColor(1, 1, 0, 0.3)  -- Yellow for selection
-        block:drawHighlight(pass)
-    elseif block == self.highlightedBlock then
-        pass:setColor(0.5, 0.5, 1, 0.3)  -- Blue for hover
-        block:drawHighlight(pass)
+    -- Draw selection highlight only in SELECT mode
+    if self.currentMode == self.MODE_SELECT then
+        if block == self.selectedBlock then
+            pass:setColor(1, 1, 0, 0.3)  -- Yellow for selection
+            block:drawHighlight(pass)
+        elseif block == self.highlightedBlock then
+            pass:setColor(0.5, 0.5, 1, 0.3)  -- Blue for hover
+            block:drawHighlight(pass)
+        end
     end
 end
 
@@ -157,11 +166,6 @@ function World:drawGrid(pass)
     for _, block in ipairs(self.blocks) do
         self:drawBlock(pass, block)
     end
-    
-    -- Draw mode indicator
-    pass:setColor(1, 1, 1, 1)
-    local modeText = "Mode: " .. self.currentMode
-    pass:text(modeText, -1, 2, -2, 0.1)
 end
 
 function World:drawFadingLine(pass, startX, startY, startZ, endX, endY, endZ)
