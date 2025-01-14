@@ -110,7 +110,6 @@ function calculateRayIntersection()
     return intersection, t
 end
 
--- Modify the mousepressed function
 function lovr.mousepressed(x, y, button)
     -- Check if mouse is in UI area first
     if scene.ui:isPointInPanel(x, y) then
@@ -130,10 +129,11 @@ function lovr.mousepressed(x, y, button)
             local gridX = math.floor(intersection.x + 0.5)
             local gridZ = math.floor(intersection.z + 0.5)
             
-            -- Check for double click
+            -- Check for double click - only in PLACE mode
             local currentTime = lovr.timer.getTime()
-            if currentTime - lastClickTime < DOUBLE_CLICK_TIME then
-                -- Double click detected
+            if scene.world.currentMode == scene.world.MODE_PLACE and 
+               currentTime - lastClickTime < DOUBLE_CLICK_TIME then
+                -- Double click detected - delete block in PLACE mode
                 scene.world:deleteBlock(gridX, scene.world.currentGridY, gridZ)
             else
                 -- Single click - normal block placement/selection

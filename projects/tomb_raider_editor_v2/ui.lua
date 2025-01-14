@@ -7,7 +7,16 @@ local UI = {
     padding = 10,      -- Padding between elements
     selectedTexture = nil, -- Currently selected texture
     startY = nil,      -- Starting Y position for texture grid
-    texPerRow = nil    -- Number of textures per row
+    texPerRow = nil,   -- Number of textures per row
+    world = nil,       -- Reference to world
+    
+    -- Mode indicator properties
+    modeIndicatorWidth = 200,
+    modeIndicatorHeight = 40,
+    modeColors = {
+        PLACE = {0.2, 0.8, 0.2, 0.8},  -- Green for place mode
+        SELECT = {0.2, 0.2, 0.8, 0.8}   -- Blue for select mode
+    }
 }
 
 function UI:new(camera)
@@ -67,6 +76,50 @@ function UI:loadTextures()
     end
 end
 
+function UI:drawModeIndicator(pass)
+    if not self.world then return end
+    
+    -- Draw background panel
+    local currentMode = self.world.currentMode
+    local bgColor = self.modeColors[currentMode] or {0.2, 0.2, 0.2, 0.8}
+    pass:setColor(unpack(bgColor))
+    pass:plane(
+        self.modeIndicatorWidth/2,
+        self.modeIndicatorHeight/2,
+        0,
+        self.modeIndicatorWidth,
+        self.modeIndicatorHeight
+    )
+    
+    -- Draw mode text
+    pass:setColor(1, 1, 1, 1)
+    pass:text(
+        currentMode .. " MODE",
+        10,
+        self.modeIndicatorHeight/2,
+        0,
+        0.5,
+        0,
+        0, 1, 0,
+        0,
+        'left'
+    )
+    
+    -- Draw shortcut hint
+    pass:setColor(1, 1, 1, 0.7)
+    pass:text(
+        "[TAB] to switch",
+        self.modeIndicatorWidth - 10,
+        self.modeIndicatorHeight/2,
+        0,
+        0.3,
+        0,
+        0, 1, 0,
+        0,
+        'right'
+    )
+end
+
 function UI:draw(pass)
     -- Get window dimensions
     local width, height = lovr.system.getWindowDimensions()
@@ -77,6 +130,9 @@ function UI:draw(pass)
     
     -- Reset view transform
     pass:setViewPose(1, mat4():identity())
+    
+    -- Draw mode indicator first
+    self:drawModeIndicator(pass)
     
     -- Calculate panel position (right side of screen)
     local panelX = width - self.panelWidth
