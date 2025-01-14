@@ -13,6 +13,16 @@ local Block = {
     
     -- Height levels available (1 = full height, going down)
     heightLevels = {1, 0.66, 0.33, 0},
+    
+    -- Face vertex mappings (which vertices belong to each face)
+    faceVertices = {
+        front = {3, 4},   -- -x+z, +x+z
+        back = {1, 2},    -- -x-z, +x-z
+        left = {1, 3},    -- -x-z, -x+z
+        right = {2, 4},   -- +x-z, +x+z
+        top = {1, 2, 3, 4}, -- all vertices
+        bottom = {}       -- bottom face has no adjustable vertices
+    },
 
     -- Store textures for each face
     faceTextures = nil,  -- Will store textures for all 6 faces
@@ -37,10 +47,55 @@ function Block:new(x, y, z, texture, textureInfo)
     return block
 end
 
+function Block:getVertexLevel(index)
+    -- Convert height back to level (1-4)
+    local height = self.vertices[index]
+    for level, levelHeight in ipairs(self.heightLevels) do
+        if height == levelHeight then
+            return level
+        end
+    end
+    return 1  -- Default to full height if not found
+end
+
 function Block:setVertexHeight(index, level)
     -- level should be 1-4 (1 = full height, 4 = lowest)
     if index >= 1 and index <= 4 and level >= 1 and level <= 4 then
         self.vertices[index] = self.heightLevels[level]
+    end
+end
+
+function Block:getFaceVertices(face)
+    return self.faceVertices[face]
+end
+
+function Block:moveFaceVertices(face, direction)
+    -- direction: 1 for up, -1 for down
+    if face == "bottom" then return end -- Can't move bottom face
+    
+    local vertices = self.faceVertices[face]
+    if not vertices then return end
+    
+    -- Get current minimum level among face vertices
+    local minLevel = 1
+    local maxLevel = 4
+    for _, vertexIndex in ipairs(vertices) do
+        local level = self:getVertexLevel(vertexIndex)
+        minLevel = math.max(minLevel, level)
+        maxLevel = math.min(maxLevel, level)
+    end
+    
+    -- Calculate new level ensuring we stay within bounds
+    local newLevel
+    if direction > 0 then -- Moving up
+        newLevel = math.max(1, minLevel - 1)
+    else -- Moving down
+        newLevel = math.min(4, maxLevel + 1)
+    end
+    
+    -- Apply new height to all vertices of the face
+    for _, vertexIndex in ipairs(vertices) do
+        self:setVertexHeight(vertexIndex, newLevel)
     end
 end
 
@@ -169,8 +224,6 @@ function Block:setTexture(texture, textureInfo)
         self:setFaceTexture(face, texture, textureInfo)
     end
 end
-
-
 
 function Block:setFaceTexture(face, texture, textureInfo)
     if not self.faceTextures then

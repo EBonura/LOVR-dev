@@ -97,6 +97,16 @@ function World:deleteBlock(x, y, z)
     return false
 end
 
+function World:handleKeyPressed(key)
+    if self.currentMode == self.MODE_FACE_SELECT and self.selectedFace then
+        if key == "up" then
+            self.selectedFace.block:moveFaceVertices(self.selectedFace.face, 1)  -- Move up
+        elseif key == "down" then
+            self.selectedFace.block:moveFaceVertices(self.selectedFace.face, -1)  -- Move down
+        end
+    end
+end
+
 function World:handleClick(x, y, z, isShiftHeld)
     if self.currentMode == self.MODE_PLACE then
         self:placeBlock(x, y, z)

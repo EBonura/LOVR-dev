@@ -30,6 +30,11 @@ function lovr.keypressed(key)
         scene.world:toggleMode()
         return
     end
+    
+    -- Let world handle keys first (for face movement)
+    scene.world:handleKeyPressed(key)
+    
+    -- Then let camera handle remaining keys
     scene.camera:handleKeyPressed(key)
 end
 
