@@ -5,13 +5,19 @@ local UI = {
     textures = {},     -- Store loaded textures
     textureSize = 64,  -- Display size for texture previews
     padding = 10,      -- Padding between elements
-    selectedTexture = nil -- Currently selected texture
+    selectedTexture = nil, -- Currently selected texture
+    startY = nil,      -- Starting Y position for texture grid
+    texPerRow = nil    -- Number of textures per row
 }
 
 function UI:new(camera)
     local ui = setmetatable({}, { __index = UI })
     ui.camera = camera
     ui:loadTextures()
+    -- Select first texture by default
+    if #ui.textures > 0 then
+        ui.selectedTexture = ui.textures[1]
+    end
     return ui
 end
 
@@ -20,7 +26,7 @@ function UI:loadTextures()
     local brickPath = "textures/Brick/"
     self.textures = {}
     
-    -- List of brick textures (hardcoded for now)
+    -- List of brick textures
     local brickTextures = {
         "Horror_Brick_01-128x128.png",
         "Horror_Brick_02-128x128.png",
@@ -92,17 +98,18 @@ function UI:draw(pass)
         'left'
     )
     
-    -- Draw textures grid
-    local startY = height - 60  -- Start below title
-    local texPerRow = math.floor((self.panelWidth - self.padding * 2) / self.textureSize)
+    -- Update class variables for click detection
+    self.startY = height - 60  -- Start below title
+    self.texPerRow = math.floor((self.panelWidth - self.padding * 2) / self.textureSize)
     local spacing = self.textureSize + self.padding
     
+    -- Draw textures grid
     for i, tex in ipairs(self.textures) do
-        local row = math.floor((i-1) / texPerRow)
-        local col = (i-1) % texPerRow
+        local row = math.floor((i-1) / self.texPerRow)
+        local col = (i-1) % self.texPerRow
         
         local x = panelX + self.padding + col * spacing
-        local y = startY - row * spacing
+        local y = self.startY - row * spacing
         
         -- Draw texture preview
         pass:setColor(1, 1, 1, 1)
@@ -118,13 +125,24 @@ function UI:draw(pass)
         
         -- Draw selection highlight if this is the selected texture
         if self.selectedTexture == tex then
-            pass:setColor(1, 1, 0, 0.5)
+            -- Draw red selection box
+            pass:setColor(1, 0, 0, 1)
+            -- Draw red selection box with proper Z coordinates
             pass:line(
-                x, y,
-                x + self.textureSize, y,
-                x + self.textureSize, y - self.textureSize,
-                x, y - self.textureSize,
-                x, y
+                x, y, 0,
+                x + self.textureSize, y, 0
+            )
+            pass:line(
+                x + self.textureSize, y, 0,
+                x + self.textureSize, y - self.textureSize, 0
+            )
+            pass:line(
+                x + self.textureSize, y - self.textureSize, 0,
+                x, y - self.textureSize, 0
+            )
+            pass:line(
+                x, y - self.textureSize, 0,
+                x, y, 0
             )
         end
     end
@@ -142,6 +160,21 @@ function UI:draw(pass)
         0,
         'left'
     )
+
+    -- Draw selected texture info
+    if self.selectedTexture then
+        pass:text(
+            "Selected: " .. self.selectedTexture.name,
+            panelX + self.padding,
+            30,
+            0,
+            0.6,
+            0,
+            0, 1, 0,
+            0,
+            'left'
+        )
+    end
 end
 
 function UI:isPointInPanel(x, y)
@@ -157,20 +190,20 @@ function UI:handleClick(x, y)
     -- Convert click to panel-relative coordinates
     local panelX = lovr.system.getWindowWidth() - self.panelWidth
     local relativeX = x - panelX - self.padding
-    local relativeY = lovr.system.getWindowHeight() - y
+    local relativeY = self.startY - y  -- Use stored startY
     
     -- Calculate grid position
-    local texPerRow = math.floor((self.panelWidth - self.padding * 2) / self.textureSize)
     local spacing = self.textureSize + self.padding
-    
     local col = math.floor(relativeX / spacing)
-    local row = math.floor((lovr.system.getWindowHeight() - 60 - relativeY) / spacing)
+    local row = math.floor(relativeY / spacing)
     
-    local index = row * texPerRow + col + 1
+    -- Calculate index
+    local index = row * self.texPerRow + col + 1
     
     -- Check if we clicked a valid texture
     if index >= 1 and index <= #self.textures then
         self.selectedTexture = self.textures[index]
+        print("Selected texture: " .. self.selectedTexture.name)  -- Debug print
         return true
     end
     
