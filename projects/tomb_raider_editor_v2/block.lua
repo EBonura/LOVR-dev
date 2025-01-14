@@ -12,13 +12,17 @@ local Block = {
     height = 1,
     
     -- Height levels available (1 = full height, going down)
-    heightLevels = {1, 0.66, 0.33, 0}
+    heightLevels = {1, 0.66, 0.33, 0},
+
+    -- Texture for all faces (we'll expand this to per-face later)
+    texture = nil
 }
 
-function Block:new(x, y, z)
+function Block:new(x, y, z, texture)
     local block = setmetatable({}, { __index = Block })
     block.position = lovr.math.newVec3(x, y, z)
     block.vertices = {1, 1, 1, 1}  -- Initialize all vertices at full height
+    block.texture = texture
     return block
 end
 
@@ -39,40 +43,65 @@ function Block:getCornerPosition(index)
            self.position.z + zOffset
 end
 
-function Block:draw(pass)
-    -- Draw wireframe for now to visualize the structure
-    pass:setColor(1, 1, 1, 1)
-    
-    -- Draw vertical lines at corners
-    for i = 1, 4 do
-        local x, y, z = self:getCornerPosition(i)
-        pass:line(
-            x, self.position.y, z,  -- Base
-            x, y, z                 -- Top
-        )
+function Block:drawFace(pass, v1, v2, v3, v4, normal)
+    if self.texture then
+        local center = (v1 + v2 + v3 + v4) / 4
+        local width = vec3(v2 - v1):length()
+        local height = vec3(v3 - v1):length()
+        
+        pass:setMaterial(self.texture)
+        pass:push()
+        pass:translate(center)
+        
+        -- Rotate based on the provided normal
+        if normal.x ~= 0 then
+            pass:rotate(normal.x > 0 and math.pi/2 or -math.pi/2, 0, 1, 0)
+        elseif normal.z ~= 0 then
+            pass:rotate(normal.z > 0 and math.pi or 0, 0, 1, 0)
+        elseif normal.y ~= 0 then
+            pass:rotate(normal.y > 0 and -math.pi/2 or math.pi/2, 1, 0, 0)
+        end
+        
+        pass:plane(0, 0, 0, width, height)
+        pass:pop()
+        pass:setMaterial()
     end
     
-    -- Draw base rectangle
-    local x1, _, z1 = self:getCornerPosition(1)
-    local x2, _, z2 = self:getCornerPosition(2)
-    local x3, _, z3 = self:getCornerPosition(3)
-    local x4, _, z4 = self:getCornerPosition(4)
+    -- Draw wireframe outline
+    pass:setColor(1, 1, 1, 1)
+    pass:line(v1, v2)
+    pass:line(v2, v4)
+    pass:line(v4, v3)
+    pass:line(v3, v1)
+end
+
+function Block:draw(pass)
+    -- Get all corner positions
+    local corners = {}
+    for i = 1, 4 do
+        corners[i] = vec3(self:getCornerPosition(i))
+    end
     
-    pass:line(x1, self.position.y, z1, x2, self.position.y, z2)
-    pass:line(x2, self.position.y, z2, x4, self.position.y, z4)
-    pass:line(x4, self.position.y, z4, x3, self.position.y, z3)
-    pass:line(x3, self.position.y, z3, x1, self.position.y, z1)
+    -- Get bottom corners
+    local bottomCorners = {
+        vec3(corners[1].x, self.position.y, corners[1].z),
+        vec3(corners[2].x, self.position.y, corners[2].z),
+        vec3(corners[3].x, self.position.y, corners[3].z),
+        vec3(corners[4].x, self.position.y, corners[4].z)
+    }
     
-    -- Draw top edges
-    local _, y1, _ = self:getCornerPosition(1)
-    local _, y2, _ = self:getCornerPosition(2)
-    local _, y3, _ = self:getCornerPosition(3)
-    local _, y4, _ = self:getCornerPosition(4)
+    -- Draw faces with proper normals
+    -- Bottom face
+    self:drawFace(pass, bottomCorners[1], bottomCorners[2], bottomCorners[3], bottomCorners[4], vec3(0, -1, 0))
     
-    pass:line(x1, y1, z1, x2, y2, z2)
-    pass:line(x2, y2, z2, x4, y4, z4)
-    pass:line(x4, y4, z4, x3, y3, z3)
-    pass:line(x3, y3, z3, x1, y1, z1)
+    -- Top face
+    self:drawFace(pass, corners[1], corners[2], corners[3], corners[4], vec3(0, 1, 0))
+    
+    -- Side faces
+    self:drawFace(pass, corners[1], corners[2], bottomCorners[1], bottomCorners[2], vec3(0, 0, -1))  -- back
+    self:drawFace(pass, corners[2], corners[4], bottomCorners[2], bottomCorners[4], vec3(1, 0, 0))   -- right
+    self:drawFace(pass, corners[4], corners[3], bottomCorners[4], bottomCorners[3], vec3(0, 0, 1))   -- front
+    self:drawFace(pass, corners[3], corners[1], bottomCorners[3], bottomCorners[1], vec3(-1, 0, 0))  -- left
 end
 
 return Block

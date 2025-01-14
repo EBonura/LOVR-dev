@@ -14,6 +14,7 @@ function lovr.load()
     scene.world = World:new(scene.camera)
     scene.camera:setWorld(scene.world)  -- Give camera access to world
     scene.ui = UI:new(scene.camera)
+    scene.world:setUI(scene.ui)  -- Give world access to UI for texturing
 end
 
 function lovr.update(dt)
@@ -122,3 +123,5 @@ function lovr.mousereleased(x, y, button)
     -- If not in UI, handle camera controls
     scene.camera:mousereleased(x, y, button)
 end
+
+return scene

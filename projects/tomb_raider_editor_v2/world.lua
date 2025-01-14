@@ -13,7 +13,12 @@ function World:new(camera)
     local world = setmetatable({}, { __index = World })
     world.camera = camera
     world.blocks = {}  -- Initialize empty blocks table
+    world.ui = nil    -- Will be set later
     return world
+end
+
+function World:setUI(ui)
+    self.ui = ui
 end
 
 function World:placeBlock(x, y, z)
@@ -26,9 +31,14 @@ function World:placeBlock(x, y, z)
         end
     end
     
+    -- Get current texture from UI
+    local texture = nil
+    if self.ui and self.ui.selectedTexture then
+        texture = self.ui.selectedTexture.texture
+    end
+    
     -- Create and add new block
-    local block = Block:new(x, y, z)
-    -- All vertices start at full height by default
+    local block = Block:new(x, y, z, texture)
     table.insert(self.blocks, block)
     return true
 end
