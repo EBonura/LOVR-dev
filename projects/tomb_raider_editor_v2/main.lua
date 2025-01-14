@@ -28,12 +28,19 @@ function lovr.draw(pass)
     -- First draw 3D scene
     pass:setViewPose(1, scene.camera.position, scene.camera.rotation)
     
-    -- Calculate ray intersection
-    local intersection, t = calculateRayIntersection()
-    
-    -- Draw world elements
-    scene.world:drawGrid(pass)
-    scene.world:drawCursorIntersection(pass, t, intersection)
+    -- Only calculate and draw intersection if mouse is not in UI
+    local mx, my = lovr.system.getMousePosition()
+    if not scene.ui:isPointInPanel(mx, my) then
+        -- Calculate ray intersection
+        local intersection, t = calculateRayIntersection()
+        
+        -- Draw world elements
+        scene.world:drawGrid(pass)
+        scene.world:drawCursorIntersection(pass, t, intersection)
+    else
+        -- Still draw the grid even when mouse is in UI
+        scene.world:drawGrid(pass)
+    end
     
     -- Draw UI last (includes debug info now)
     pass:push()
@@ -81,17 +88,6 @@ end
 function lovr.mousepressed(x, y, button)
     -- Check if mouse is in UI area first
     if scene.ui:isPointInPanel(x, y) then
-        -- We'll add UI interaction later
-        return
-    end
-    
-    -- If not in UI, handle camera controls
-    scene.camera:mousepressed(x, y, button)
-end
-
-function lovr.mousepressed(x, y, button)
-    -- Check if mouse is in UI area first
-    if scene.ui:isPointInPanel(x, y) then
         if button == 1 then  -- Left click
             -- Handle UI interaction
             if scene.ui:handleClick(x, y) then
@@ -103,4 +99,14 @@ function lovr.mousepressed(x, y, button)
     
     -- If not in UI, handle camera controls
     scene.camera:mousepressed(x, y, button)
+end
+
+function lovr.mousereleased(x, y, button)
+    -- Check if mouse is in UI area first
+    if scene.ui:isPointInPanel(x, y) then
+        return
+    end
+    
+    -- If not in UI, handle camera controls
+    scene.camera:mousereleased(x, y, button)
 end
