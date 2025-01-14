@@ -154,15 +154,9 @@ function lovr.mousepressed(x, y, button)
             local gridZ = math.floor(intersection.z + 0.5)
             
             if scene.world.currentMode == scene.world.MODE_FACE_SELECT then
-                -- If we have a hovered face, select it
+                -- If we have a hovered face, handle the selection in world
                 if scene.world.hoveredFace then
-                    scene.world.selectedFace = scene.world.hoveredFace
-                    -- Sync UI texture selection with face texture
-                    if scene.ui then
-                        local block = scene.world.selectedFace.block
-                        local faceTexture = block.faceTextures[scene.world.selectedFace.face] or block.texture
-                        scene.ui:setSelectedTextureByImage(faceTexture)
-                    end
+                    scene.world:handleClick(gridX, scene.world.currentGridY, gridZ)  -- Let world handle the face selection and UI sync
                 end
             else
                 -- Handle PLACE and SELECT modes

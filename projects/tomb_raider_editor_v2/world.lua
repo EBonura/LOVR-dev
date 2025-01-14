@@ -53,16 +53,26 @@ function World:setMode(mode)
             self.hoveredFace = nil
             
             -- Initialize face textures if we have a selected block
-            if self.selectedBlock and self.selectedBlock.texture then
-                -- Set texture for all faces to match the block's texture
-                local faces = {"front", "back", "left", "right", "top", "bottom"}
-                for _, face in ipairs(faces) do
-                    if not self.selectedBlock.faceTextures[face] then
-                        self.selectedBlock:setFaceTexture(
-                            face,
-                            self.selectedBlock.texture,
-                            self.selectedBlock.textureInfo
-                        )
+            if self.selectedBlock then
+                -- Ensure faceTextures and faceTextureInfos are initialized
+                if not self.selectedBlock.faceTextures then
+                    self.selectedBlock.faceTextures = {}
+                end
+                if not self.selectedBlock.faceTextureInfos then
+                    self.selectedBlock.faceTextureInfos = {}
+                end
+                
+                -- Set texture for all faces to match the block's texture if they don't have one
+                if self.selectedBlock.texture and self.selectedBlock.textureInfo then
+                    local faces = {"front", "back", "left", "right", "top", "bottom"}
+                    for _, face in ipairs(faces) do
+                        if not self.selectedBlock.faceTextures[face] or not self.selectedBlock.faceTextureInfos[face] then
+                            self.selectedBlock:setFaceTexture(
+                                face,
+                                self.selectedBlock.texture,
+                                self.selectedBlock.textureInfo
+                            )
+                        end
                     end
                 end
             end
@@ -124,11 +134,14 @@ function World:handleClick(x, y, z)
         end
     elseif self.currentMode == self.MODE_FACE_SELECT and self.hoveredFace then
         -- In face select mode, handle face selection
-        self.selectedFace = self.hoveredFace
+        self.selectedFace = {
+            block = self.hoveredFace.block,
+            face = self.hoveredFace.face
+        }
         -- Sync UI texture selection with face texture or block texture
         if self.ui then
-            local block = self.hoveredFace.block
-            local face = self.hoveredFace.face
+            local block = self.selectedFace.block
+            local face = self.selectedFace.face
             local faceTexture = block.faceTextures[face]
             local faceTextureInfo = block.faceTextureInfos[face]
             
