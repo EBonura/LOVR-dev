@@ -1,15 +1,39 @@
+local Block = require('block')
+
 local World = {
     gridSize = 50,  -- Size of the ground grid
     camera = nil,   -- Reference to camera
     currentGridY = 0,  -- Current Y level of the grid
     numLineSegments = 10,  -- Number of segments for fading lines
-    smallGridSize = 10    -- Size of the local grid around the cube
+    smallGridSize = 10,    -- Size of the local grid around the cube
+    blocks = {}  -- Table to store all blocks
 }
 
 function World:new(camera)
     local world = setmetatable({}, { __index = World })
     world.camera = camera
+    world.blocks = {}  -- Initialize empty blocks table
     return world
+end
+
+function World:placeBlock(x, y, z)
+    -- Check if a block already exists at this position
+    for _, block in ipairs(self.blocks) do
+        if block.position.x == x and 
+           block.position.y == y and 
+           block.position.z == z then
+            return false  -- Block already exists here
+        end
+    end
+    
+    -- Create and add new block
+    local block = Block:new(x, y, z)
+    -- For now, set default heights (we'll add height editing later)
+    for i = 1, 4 do
+        block:setVertexHeight(i, 1)  -- Set all vertices to base height
+    end
+    table.insert(self.blocks, block)
+    return true
 end
 
 function World:drawGrid(pass)
@@ -19,6 +43,11 @@ function World:drawGrid(pass)
     -- Draw main grid at ground level (y=0)
     pass:setColor(0.5, 0.5, 0.5, gridOpacity)
     pass:plane(0.5, 0, 0.5, self.gridSize, self.gridSize, -math.pi/2, 1, 0, 0, 'line', self.gridSize, self.gridSize)
+    
+    -- Draw all blocks
+    for _, block in ipairs(self.blocks) do
+        block:draw(pass)
+    end
 end
 
 function World:drawFadingLine(pass, startX, startY, startZ, endX, endY, endZ)

@@ -97,8 +97,20 @@ function lovr.mousepressed(x, y, button)
         return
     end
     
-    -- If not in UI, handle camera controls
-    scene.camera:mousepressed(x, y, button)
+    -- Handle block placement with left click
+    if button == 1 then
+        local intersection, t = calculateRayIntersection()
+        if t > 0 then
+            local gridX = math.floor(intersection.x + 0.5)
+            local gridZ = math.floor(intersection.z + 0.5)
+            scene.world:placeBlock(gridX, scene.world.currentGridY, gridZ)
+        end
+    end
+    
+    -- Handle camera controls with right click
+    if button == 2 then
+        scene.camera:mousepressed(x, y, button)
+    end
 end
 
 function lovr.mousereleased(x, y, button)
