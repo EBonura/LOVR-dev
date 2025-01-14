@@ -89,13 +89,18 @@ function lovr.mousepressed(x, y, button)
     scene.camera:mousepressed(x, y, button)
 end
 
-function lovr.mousereleased(x, y, button)
+function lovr.mousepressed(x, y, button)
     -- Check if mouse is in UI area first
     if scene.ui:isPointInPanel(x, y) then
-        -- We'll add UI interaction later
+        if button == 1 then  -- Left click
+            -- Handle UI interaction
+            if scene.ui:handleClick(x, y) then
+                return  -- Click was handled by UI
+            end
+        end
         return
     end
     
     -- If not in UI, handle camera controls
-    scene.camera:mousereleased(x, y, button)
+    scene.camera:mousepressed(x, y, button)
 end
