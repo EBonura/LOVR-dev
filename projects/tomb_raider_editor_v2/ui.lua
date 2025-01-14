@@ -168,11 +168,9 @@ function UI:getTextureFilenameFromObject(texture)
 end
 
 function UI:getTextureInfo(texture)
-    print("getTextureInfo: Looking for texture in current folder:", self:getCurrentFolder())
     -- Try to find it in current folder first
     for _, tex in ipairs(self.textures) do
         if tex.texture == texture then
-            print("getTextureInfo: Found in current folder!", tex.folder, tex.number)
             return {
                 folder = tex.folder,
                 number = tex.number
@@ -183,13 +181,10 @@ function UI:getTextureInfo(texture)
     -- Get the original texture's filename pattern
     local origFilename = self:getTextureFilenameFromObject(texture)
     if origFilename then
-        print("getTextureInfo: Got original filename:", origFilename)
-        
         -- Extract folder and number from filename
         local folder, number = origFilename:match("Horror_([^_]+)_(%d+)")
         if folder and number then
             number = tonumber(number)
-            print("getTextureInfo: Extracted folder and number:", folder, number)
             return {
                 folder = folder,
                 number = number
@@ -197,21 +192,16 @@ function UI:getTextureInfo(texture)
         end
     end
     
-    print("getTextureInfo: Texture not found in any folder")
     return nil
 end
 
 function UI:setSelectedTextureByImage(texture, textureInfo)
     if not texture or not textureInfo then 
-        print("setSelectedTextureByImage: No texture or info")
         return false 
     end
     
-    print("setSelectedTextureByImage: Looking for", textureInfo.folder, textureInfo.number)
-    
     -- Switch to the correct folder if needed
     if textureInfo.folder ~= self:getCurrentFolder() then
-        print("setSelectedTextureByImage: Switching folder from", self:getCurrentFolder(), "to", textureInfo.folder)
         self.currentFolderIndex = self:getFolderIndex(textureInfo.folder)
         self:loadTexturesFromCurrentFolder()
     end
@@ -219,13 +209,11 @@ function UI:setSelectedTextureByImage(texture, textureInfo)
     -- Find and select the texture with matching number
     for _, tex in ipairs(self.textures) do
         if tex.folder == textureInfo.folder and tex.number == textureInfo.number then
-            print("setSelectedTextureByImage: Found matching texture")
             self.selectedTexture = tex
             return true
         end
     end
     
-    print("setSelectedTextureByImage: No matching texture found")
     return false
 end
 
@@ -463,14 +451,12 @@ function UI:handleClick(x, y)
     
     if math.abs(uiY - folderNavY) <= self.buttonHeight/2 then
         if x >= panelX and x < panelX + self.buttonWidth then
-            print("Previous folder clicked")
             self:previousFolder()
             return true
         end
         
         local nextButtonX = panelX + self.panelWidth - self.buttonWidth
         if x >= nextButtonX and x < panelX + self.panelWidth then
-            print("Next folder clicked")
             self:nextFolder()
             return true
         end
@@ -504,7 +490,6 @@ function UI:handleClick(x, y)
                 -- In face select mode, update only selected face
                 local block = self.world.selectedFace.block
                 local face = self.world.selectedFace.face
-                print("Setting face texture with info:", textureInfo.folder, textureInfo.number)
                 block:setFaceTexture(
                     face,
                     selectedTex.texture,

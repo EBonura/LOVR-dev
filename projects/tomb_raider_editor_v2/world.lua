@@ -109,7 +109,6 @@ function World:handleClick(x, y, z)
                 local frontTexture = block.faceTextures["front"]
                 local frontTextureInfo = block.faceTextureInfos["front"]
                 if frontTexture and frontTextureInfo then
-                    print("Syncing block texture with info:", frontTextureInfo.folder, frontTextureInfo.number)
                     self.ui:setSelectedTextureByImage(frontTexture, frontTextureInfo)
                 end
             end
@@ -130,7 +129,6 @@ function World:handleClick(x, y, z)
             local faceTextureInfo = block.faceTextureInfos[face]
             
             if faceTexture and faceTextureInfo then
-                print("Syncing face texture with info:", faceTextureInfo.folder, faceTextureInfo.number)
                 self.ui:setSelectedTextureByImage(faceTexture, faceTextureInfo)
             end
         end
