@@ -17,7 +17,8 @@ function lovr.load()
     scene.world = World:new(scene.camera)
     scene.camera:setWorld(scene.world)  -- Give camera access to world
     scene.ui = UI:new(scene.camera)
-    scene.world:setUI(scene.ui)  -- Give world access to UI for texturing
+    scene.world:setUI(scene.ui)      -- Give world access to UI for texturing
+    scene.ui.world = scene.world     -- Give UI access to world for block updates
 end
 
 function lovr.update(dt)

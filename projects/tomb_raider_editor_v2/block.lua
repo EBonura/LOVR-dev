@@ -111,4 +111,8 @@ function Block:drawHighlight(pass)
     pass:box(x, y + 0.5, z, scale, scale, scale)
 end
 
+function Block:setTexture(texture)
+    self.texture = texture
+end
+
 return Block

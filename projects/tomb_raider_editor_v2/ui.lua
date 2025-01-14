@@ -217,6 +217,15 @@ function UI:handleClick(x, y)
     -- Check if we clicked a valid texture
     if index >= 1 and index <= #self.textures and col < self.texPerRow and row >= 0 then
         self.selectedTexture = self.textures[index]
+        
+        -- If we have a world reference and there's a selected block in SELECT mode,
+        -- update its texture
+        if self.world and 
+           self.world.currentMode == self.world.MODE_SELECT and 
+           self.world.selectedBlock then
+            self.world.selectedBlock:setTexture(self.selectedTexture.texture)
+        end
+        
         return true
     end
     
