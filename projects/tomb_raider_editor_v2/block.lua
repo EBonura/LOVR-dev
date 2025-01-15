@@ -123,52 +123,46 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
     
     local isHighlighted = isHovered or isSelected
     local faceTexture = self.faceTextures[faceName]
-    local center = (v1 + v2 + v3 + v4) / 4
-    local width = vec3(v2 - v1):length()
-    local height = vec3(v3 - v1):length()
+    
+    -- Create mesh for the face (two triangles)
+    local format = {
+        { 'VertexPosition', 'vec3' },
+        { 'VertexNormal', 'vec3' },
+        { 'VertexUV', 'vec2' }
+    }
+    
+    -- Create vertices for two triangles
+    local vertices = {
+        -- First triangle (v1, v2, v3)
+        { v1.x, v1.y, v1.z, normal.x, normal.y, normal.z, 0, 0 },
+        { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, 1, 0 },
+        { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, 0, 1 },
+        -- Second triangle (v2, v4, v3)
+        { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, 1, 0 },
+        { v4.x, v4.y, v4.z, normal.x, normal.y, normal.z, 1, 1 },
+        { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, 0, 1 }
+    }
+    
+    local mesh = lovr.graphics.newMesh(format, vertices)
 
-    -- First, draw the textured face
+    -- Draw the textured face
     if faceTexture then
-        pass:setColor(1, 1, 1, 1)  -- Full opacity for texture
-        pass:setSampler('nearest')  -- Set nearest neighbor filtering for pixelated look
+        pass:setColor(1, 1, 1, 1)
+        pass:setSampler('nearest')
         pass:setMaterial(faceTexture)
-        pass:push()
-        pass:translate(center)
-        
-        if normal.x ~= 0 then
-            pass:rotate(normal.x > 0 and math.pi/2 or -math.pi/2, 0, 1, 0)
-        elseif normal.z ~= 0 then
-            pass:rotate(normal.z > 0 and math.pi or 0, 0, 1, 0)
-        elseif normal.y ~= 0 then
-            pass:rotate(normal.y > 0 and -math.pi/2 or math.pi/2, 1, 0, 0)
-        end
-        
-        pass:plane(0, 0, 0, width, height)
-        pass:pop()
+        pass:draw(mesh)
         pass:setMaterial()
     end
     
-    -- Then, draw highlight overlay if needed
+    -- Draw highlight overlay if needed
     if isHighlighted then
         pass:setColor(1, 1, 0, 0.1)  -- Yellow semi-transparent highlight
-        pass:push()
-        -- Offset center slightly in the direction of the normal
-        local highlightCenter = center + normal * 0.001
-        pass:translate(highlightCenter)
-        
-        if normal.x ~= 0 then
-            pass:rotate(normal.x > 0 and math.pi/2 or -math.pi/2, 0, 1, 0)
-        elseif normal.z ~= 0 then
-            pass:rotate(normal.z > 0 and math.pi or 0, 0, 1, 0)
-        elseif normal.y ~= 0 then
-            pass:rotate(normal.y > 0 and -math.pi/2 or math.pi/2, 1, 0, 0)
-        end
-        
-        pass:plane(0, 0, 0, width, height)  -- No need for additional z-offset since we moved the center
-        pass:pop()
+        pass:setDepthTest('gequal')  -- Draw over existing geometry
+        pass:draw(mesh)
+        pass:setDepthTest()  -- Reset depth test
     end
     
-    -- Finally, draw wireframe outline
+    -- Draw wireframe outline
     pass:setColor(isHighlighted and 1 or 1, isHighlighted and 1 or 1, isHighlighted and 0 or 1, 1)
     pass:line(v1, v2)
     pass:line(v2, v4)
