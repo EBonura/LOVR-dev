@@ -208,13 +208,20 @@ function World:handleKeyPressed(key)
         if moved then return true end
     end
     
-    if self.currentMode == self.MODE_FACE_SELECT and self.selectedFace then
-        if key == "up" then
-            self.selectedFace.block:moveFaceVertices(self.selectedFace.face, 1)  -- Move up
-            return true
-        elseif key == "down" then
-            self.selectedFace.block:moveFaceVertices(self.selectedFace.face, -1)  -- Move down
-            return true
+    if self.currentMode == self.MODE_FACE_SELECT then
+        -- Move all selected faces instead of just the last selected one
+        if #self.selectedFaces > 0 then
+            if key == "up" then
+                for _, faceInfo in ipairs(self.selectedFaces) do
+                    faceInfo.block:moveFaceVertices(faceInfo.face, 1)  -- Move up
+                end
+                return true
+            elseif key == "down" then
+                for _, faceInfo in ipairs(self.selectedFaces) do
+                    faceInfo.block:moveFaceVertices(faceInfo.face, -1)  -- Move down
+                end
+                return true
+            end
         end
     end
     return false
