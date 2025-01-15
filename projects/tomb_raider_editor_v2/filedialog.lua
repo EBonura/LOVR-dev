@@ -11,6 +11,11 @@ local FileDialog = {
     buttonHeight = 30,
     backgroundColor = {0.2, 0.2, 0.2, 0.95},
     
+    -- Layout dimensions
+    titleOffset = 30,      -- Height for title
+    pathOffset = 30,       -- Height for path
+    headerPadding = 20,    -- Padding after header elements
+    
     -- Input field
     filename = "",
     isInputActive = false,
@@ -38,7 +43,8 @@ local FileDialog = {
     
     -- Hover state
     hoveredButton = nil,
-    activeButton = nil
+    activeButton = nil,
+    hoveredItem = nil
 }
 
 function FileDialog:new()
@@ -170,6 +176,7 @@ function FileDialog:handleMousePressed(x, y, button)
     local windowWidth, windowHeight = lovr.system.getWindowDimensions()
     local dialogX = (windowWidth - self.width) / 2
     local dialogY = (windowHeight - self.height) / 2
+    local yPos = self:getListYPositions()
     local windowY = y
     
     -- Check if click is within dialog bounds
@@ -189,13 +196,11 @@ function FileDialog:handleMousePressed(x, y, button)
         return true
     end
     
-    -- Check file list - using same calculation as handleMouseMoved
-    local listY = dialogY + self.padding + 40  -- Account for title and path display
-    local listAreaHeight = self.height - (3 * self.buttonHeight + 4 * self.padding)
-    
+    -- Check file list - using positions from getListYPositions
     if x >= dialogX + self.padding and x <= dialogX + self.width - self.padding and
-       windowY >= listY and windowY <= listY + listAreaHeight then
-        local relativeY = windowY - listY
+       windowY >= yPos.listStart and windowY <= yPos.listStart + yPos.contentArea then
+        
+        local relativeY = windowY - yPos.listStart
         local itemIndex = math.floor(relativeY / self.itemHeight) + 1 + self.scrollOffset
         
         if itemIndex >= 1 and itemIndex <= #self.files then
@@ -203,7 +208,7 @@ function FileDialog:handleMousePressed(x, y, button)
             if file.isDirectory then
                 if file.name == ".." then
                     -- Go up one directory
-                    self.currentPath = self.currentPath:match("(.*)/.*$") or ""
+                    self.currentPath = self.currentPath:match("(.*)/.*$") or "levels"
                 else
                     -- Enter directory
                     self.currentPath = self.currentPath .. "/" .. file.name
@@ -245,35 +250,43 @@ function FileDialog:handleMousePressed(x, y, button)
     return false
 end
 
+function FileDialog:getListYPositions()
+    local windowHeight = lovr.system.getWindowHeight()
+    local dialogY = (windowHeight - self.height) / 2
+    
+    -- Calculate consistent positions used across all functions
+    return {
+        listStart = dialogY + self.titleOffset + self.pathOffset + self.headerPadding,
+        contentArea = self.height - (2 * self.buttonHeight + 3 * self.padding)
+    }
+end
+
 function FileDialog:handleMouseMoved(x, y)
     if not self.isOpen then return false end
     
     local windowWidth, windowHeight = lovr.system.getWindowDimensions()
     local dialogX = (windowWidth - self.width) / 2
     local dialogY = (windowHeight - self.height) / 2
-    local windowY = y
+    local yPos = self:getListYPositions()
     
     -- Check if mouse is in file list area
-    local listY = dialogY + self.padding + 40  -- Account for title and path display
-    local listAreaHeight = self.height - (3 * self.buttonHeight + 4 * self.padding)
-    
     if x >= dialogX + self.padding and x <= dialogX + self.width - self.padding and
-       windowY >= listY and windowY <= listY + listAreaHeight then
-        -- Calculate which item is being hovered
-        local relativeY = windowY - listY
+       y >= yPos.listStart and y <= yPos.listStart + yPos.contentArea then
+        
+        local relativeY = y - yPos.listStart
         local itemIndex = math.floor(relativeY / self.itemHeight) + 1 + self.scrollOffset
         
         if itemIndex >= 1 and itemIndex <= #self.files then
             self.hoveredItem = self.files[itemIndex]
             return true
         end
-    else
-        self.hoveredItem = nil
     end
     
-    -- Check buttons (existing button hover code)
-    local buttonY = dialogY + self.height - self.buttonHeight - self.padding
-    if windowY >= buttonY and windowY <= buttonY + self.buttonHeight then
+    self.hoveredItem = nil
+    
+    -- Check buttons
+    local buttonY = windowHeight - (dialogY + self.height - self.buttonHeight - self.padding)
+    if y >= buttonY - self.buttonHeight/2 and y <= buttonY + self.buttonHeight/2 then
         local buttonWidth = (self.width - 3 * self.padding) / 2
         local confirmX = dialogX + self.padding + buttonWidth/2
         local cancelX = dialogX + self.width - buttonWidth/2 - self.padding
