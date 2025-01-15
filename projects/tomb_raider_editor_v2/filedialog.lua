@@ -155,7 +155,7 @@ function FileDialog:handleMousePressed(x, y, button)
     local windowWidth, windowHeight = lovr.system.getWindowDimensions()
     local dialogX = (windowWidth - self.width) / 2
     local dialogY = (windowHeight - self.height) / 2
-    local windowY = windowHeight - y  -- Convert to window coordinates
+    local windowY = y  -- Keep Y as is, since we're already in window coordinates
     
     -- Check if click is within dialog bounds
     if x < dialogX or x > dialogX + self.width or
@@ -169,7 +169,7 @@ function FileDialog:handleMousePressed(x, y, button)
     
     -- Check filename input field
     local inputY = dialogY + self.height - 2 * (self.buttonHeight + self.padding)
-    if windowY >= inputY - self.buttonHeight/2 and windowY <= inputY + self.buttonHeight/2 then
+    if windowY >= inputY and windowY <= inputY + self.buttonHeight then
         self.isInputActive = true
         return true
     end
@@ -200,7 +200,7 @@ function FileDialog:handleMousePressed(x, y, button)
     
     -- Check buttons
     local buttonY = dialogY + self.height - self.buttonHeight - self.padding
-    if windowY >= buttonY - self.buttonHeight/2 and windowY <= buttonY + self.buttonHeight/2 then
+    if windowY >= buttonY and windowY <= buttonY + self.buttonHeight then
         local buttonWidth = (self.width - 3 * self.padding) / 2
         local confirmX = dialogX + self.padding + buttonWidth/2
         local cancelX = dialogX + self.width - buttonWidth/2 - self.padding
@@ -231,11 +231,11 @@ function FileDialog:handleMouseMoved(x, y)
     local windowWidth, windowHeight = lovr.system.getWindowDimensions()
     local dialogX = (windowWidth - self.width) / 2
     local dialogY = (windowHeight - self.height) / 2
-    local windowY = windowHeight - y  -- Convert to window coordinates
+    local windowY = y  -- Keep Y as is, since we're already in window coordinates
     
     -- Check buttons
     local buttonY = dialogY + self.height - self.buttonHeight - self.padding
-    if windowY >= buttonY - self.buttonHeight/2 and windowY <= buttonY + self.buttonHeight/2 then
+    if windowY >= buttonY and windowY <= buttonY + self.buttonHeight then
         local buttonWidth = (self.width - 3 * self.padding) / 2
         local confirmX = dialogX + self.padding + buttonWidth/2
         local cancelX = dialogX + self.width - buttonWidth/2 - self.padding
