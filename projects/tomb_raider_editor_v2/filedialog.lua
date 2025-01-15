@@ -56,6 +56,7 @@ function FileDialog:initialize()
     -- Start in the levels directory
     self.currentPath = "levels"
     self:refreshFileList()
+    self.hoveredItem = nil
 end
 
 function FileDialog:refreshFileList()
@@ -245,9 +246,27 @@ function FileDialog:handleMouseMoved(x, y)
     local windowWidth, windowHeight = lovr.system.getWindowDimensions()
     local dialogX = (windowWidth - self.width) / 2
     local dialogY = (windowHeight - self.height) / 2
-    local windowY = y  -- Keep Y as is, since we're already in window coordinates
+    local windowY = y
     
-    -- Check buttons
+    -- Check if mouse is in file list area
+    local listY = dialogY + self.padding + 40  -- Account for title and path display
+    local listAreaHeight = self.height - (3 * self.buttonHeight + 4 * self.padding)
+    
+    if x >= dialogX + self.padding and x <= dialogX + self.width - self.padding and
+       windowY >= listY and windowY <= listY + listAreaHeight then
+        -- Calculate which item is being hovered
+        local relativeY = windowY - listY
+        local itemIndex = math.floor(relativeY / self.itemHeight) + 1 + self.scrollOffset
+        
+        if itemIndex >= 1 and itemIndex <= #self.files then
+            self.hoveredItem = self.files[itemIndex]
+            return true
+        end
+    else
+        self.hoveredItem = nil
+    end
+    
+    -- Check buttons (existing button hover code)
     local buttonY = dialogY + self.height - self.buttonHeight - self.padding
     if windowY >= buttonY and windowY <= buttonY + self.buttonHeight then
         local buttonWidth = (self.width - 3 * self.padding) / 2
@@ -333,12 +352,26 @@ function FileDialog:draw(pass)
         local fileIndex = i + self.scrollOffset
         local file = self.files[fileIndex]
         if file then
+            local itemY = windowHeight - (listY + (i-1) * self.itemHeight + self.itemHeight/2)
+            
+            -- Draw hover highlight
+            if self.hoveredItem == file then
+                pass:setColor(0.4, 0.4, 0.4, 0.5)
+                pass:plane(
+                    dialogX + self.width/2,
+                    itemY,
+                    0,
+                    self.width - 2 * self.padding,
+                    self.itemHeight
+                )
+            end
+            
             -- Draw selection highlight
             if self.selectedFile == file then
                 pass:setColor(0.3, 0.5, 0.7, 0.5)
                 pass:plane(
                     dialogX + self.width/2,
-                    windowHeight - (listY + (i-1) * self.itemHeight + self.itemHeight/2),
+                    itemY,
                     0,
                     self.width - 2 * self.padding,
                     self.itemHeight
@@ -351,7 +384,7 @@ function FileDialog:draw(pass)
             pass:text(
                 prefix .. file.name,
                 dialogX + 2 * self.padding,
-                windowHeight - (listY + (i-1) * self.itemHeight + self.itemHeight/2),
+                itemY,
                 0,
                 0.4,
                 0,
