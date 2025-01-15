@@ -297,46 +297,55 @@ function Block:intersectFace(rayStart, rayDir)
     local closestT = math.huge
     
     for _, face in ipairs(faces) do
-        -- Calculate intersection with face plane
-        local planePoint = vec3(self.position)
-        if face.name == "front" then
-            planePoint.z = planePoint.z + 0.5
-        elseif face.name == "back" then
-            planePoint.z = planePoint.z - 0.5
-        elseif face.name == "left" then
-            planePoint.x = planePoint.x - 0.5
-        elseif face.name == "right" then
-            planePoint.x = planePoint.x + 0.5
-        elseif face.name == "top" then
-            planePoint.y = planePoint.y + 0.5
-        elseif face.name == "bottom" then
-            planePoint.y = planePoint.y - 0.5
-        end
-        
-        -- Check for intersection
-        local denom = rayDir:dot(face.normal)
-        if math.abs(denom) > 0.0001 then
-            local t = (planePoint - rayStart):dot(face.normal) / denom
-            if t > 0 and t < closestT then
-                -- Check if intersection point is within face bounds
-                local hitPoint = rayStart + rayDir * t
-                local inBounds = true
-                
-                -- Check bounds based on face
-                if face.name == "front" or face.name == "back" then
-                    inBounds = math.abs(hitPoint.x - self.position.x) <= 0.5 and
-                              math.abs(hitPoint.y - self.position.y) <= 0.5
-                elseif face.name == "left" or face.name == "right" then
-                    inBounds = math.abs(hitPoint.z - self.position.z) <= 0.5 and
-                              math.abs(hitPoint.y - self.position.y) <= 0.5
-                else  -- top or bottom
-                    inBounds = math.abs(hitPoint.x - self.position.x) <= 0.5 and
-                              math.abs(hitPoint.z - self.position.z) <= 0.5
+        -- Get vertices for this face
+        local vertices = self.faceVertices[face.name]
+        if vertices then
+            -- Calculate average position of face vertices to get center point
+            local centerPoint = vec3(0, 0, 0)
+            local vertexCount = #vertices
+            
+            if face.name == "top" or face.name == "bottom" then
+                -- For top/bottom faces, use all vertices
+                for _, vIndex in ipairs(vertices) do
+                    local x, y, z = self:getCornerPosition(vIndex)
+                    centerPoint:add(vec3(x, y, z))
                 end
-                
-                if inBounds then
-                    closestT = t
-                    closestFace = face.name
+                centerPoint:mul(1/vertexCount)
+            else
+                -- For side faces, we only need the two vertices defining the face
+                local v1Index, v2Index = vertices[1], vertices[2]
+                local x1, y1, z1 = self:getCornerPosition(v1Index)
+                local x2, y2, z2 = self:getCornerPosition(v2Index)
+                centerPoint = vec3((x1 + x2)/2, (y1 + y2)/2, (z1 + z2)/2)
+            end
+            
+            -- Check for intersection with plane defined by face
+            local denom = rayDir:dot(face.normal)
+            if math.abs(denom) > 0.0001 then
+                local t = (centerPoint - rayStart):dot(face.normal) / denom
+                if t > 0 and t < closestT then
+                    -- Calculate intersection point
+                    local hitPoint = rayStart + rayDir * t
+                    local inBounds = true
+                    
+                    -- Check bounds based on face orientation
+                    if face.name == "front" or face.name == "back" then
+                        inBounds = math.abs(hitPoint.x - self.position.x) <= 0.5 and
+                                  hitPoint.y >= self.position.y and
+                                  hitPoint.y <= self.position.y + 1
+                    elseif face.name == "left" or face.name == "right" then
+                        inBounds = math.abs(hitPoint.z - self.position.z) <= 0.5 and
+                                  hitPoint.y >= self.position.y and
+                                  hitPoint.y <= self.position.y + 1
+                    else  -- top or bottom
+                        inBounds = math.abs(hitPoint.x - self.position.x) <= 0.5 and
+                                  math.abs(hitPoint.z - self.position.z) <= 0.5
+                    end
+                    
+                    if inBounds then
+                        closestT = t
+                        closestFace = face.name
+                    end
                 end
             end
         end
