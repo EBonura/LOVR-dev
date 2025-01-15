@@ -1,9 +1,82 @@
--- saveload.lua
 local Block = require('block')
+local FileDialog = require('filedialog')
 
 local SaveLoad = {
-    currentFilename = nil
+    currentFilename = nil,
+    fileDialog = nil,
+    lastError = nil,
+    lastMessage = nil,
+    messageTimeout = 3, -- Message display time in seconds
+    messageTimer = 0
 }
+
+function SaveLoad:initialize()
+    self.fileDialog = FileDialog:new()
+end
+
+function SaveLoad:update(dt)
+    -- Update message timer
+    if self.lastError or self.lastMessage then
+        self.messageTimer = self.messageTimer + dt
+        if self.messageTimer >= self.messageTimeout then
+            self.lastError = nil
+            self.lastMessage = nil
+            self.messageTimer = 0
+        end
+    end
+    
+    -- Update file dialog
+    if self.fileDialog then
+        self.fileDialog:update(dt)
+    end
+end
+
+function SaveLoad:showError(message)
+    self.lastError = message
+    self.lastMessage = nil
+    self.messageTimer = 0
+end
+
+function SaveLoad:showMessage(message)
+    self.lastMessage = message
+    self.lastError = nil
+    self.messageTimer = 0
+end
+
+function SaveLoad:handleKeyPressed(key)
+    if self.fileDialog and self.fileDialog.isOpen then
+        return self.fileDialog:handleKeyPressed(key)
+    end
+    return false
+end
+
+function SaveLoad:handleTextInput(text)
+    if self.fileDialog and self.fileDialog.isOpen then
+        return self.fileDialog:handleTextInput(text)
+    end
+    return false
+end
+
+function SaveLoad:handleMousePressed(x, y, button)
+    if self.fileDialog and self.fileDialog.isOpen then
+        return self.fileDialog:handleMousePressed(x, y, button)
+    end
+    return false
+end
+
+function SaveLoad:handleMouseMoved(x, y)
+    if self.fileDialog and self.fileDialog.isOpen then
+        return self.fileDialog:handleMouseMoved(x, y)
+    end
+    return false
+end
+
+function SaveLoad:handleScroll(dx, dy)
+    if self.fileDialog and self.fileDialog.isOpen then
+        return self.fileDialog:handleScroll(dx, dy)
+    end
+    return false
+end
 
 function SaveLoad:serializeBlock(block)
     return {
@@ -28,7 +101,7 @@ end
 function SaveLoad:saveWorld(world, filename)
     local data = {
         blocks = {},
-        gridY = world.currentGridY -- Save current grid height
+        gridY = world.currentGridY
     }
     
     -- Serialize each block
@@ -50,27 +123,36 @@ function SaveLoad:saveWorld(world, filename)
     end
     
     -- Convert to JSON string
-    local json = require('json') -- You'll need to add a JSON library
+    local json = require('json')
     local jsonString = json.encode(data)
     
     -- Save to file
     local success = lovr.filesystem.write(filename, jsonString)
     if success then
         self.currentFilename = filename
+        self:showMessage("World saved successfully to " .. filename)
         return true
+    else
+        self:showError("Failed to save world to " .. filename)
+        return false
     end
-    return false
 end
 
 function SaveLoad:loadWorld(world, filename)
     -- Read file contents
     local contents = lovr.filesystem.read(filename)
-    if not contents then return false end
+    if not contents then 
+        self:showError("Failed to read file: " .. filename)
+        return false 
+    end
     
     -- Parse JSON
     local json = require('json')
     local data = json.decode(contents)
-    if not data then return false end
+    if not data then 
+        self:showError("Failed to parse world data from " .. filename)
+        return false 
+    end
     
     -- Clear existing blocks
     world.blocks = {}
@@ -102,7 +184,34 @@ function SaveLoad:loadWorld(world, filename)
     end
     
     self.currentFilename = filename
+    self:showMessage("World loaded successfully from " .. filename)
     return true
+end
+
+function SaveLoad:promptSave(world, defaultFilename)
+    if not self.fileDialog then return end
+    
+    self.fileDialog:show("save", defaultFilename or "world.json",
+        function(filename)
+            self:saveWorld(world, filename)
+        end,
+        function()
+            self:showMessage("Save cancelled")
+        end
+    )
+end
+
+function SaveLoad:promptLoad(world)
+    if not self.fileDialog then return end
+    
+    self.fileDialog:show("load", nil,
+        function(filename)
+            self:loadWorld(world, filename)
+        end,
+        function()
+            self:showMessage("Load cancelled")
+        end
+    )
 end
 
 function SaveLoad:newWorld(world)
@@ -112,6 +221,14 @@ function SaveLoad:newWorld(world)
     world.currentGridY = 0
     -- Clear current filename
     self.currentFilename = nil
+    self:showMessage("Created new world")
+end
+
+function SaveLoad:draw(pass)
+    -- Draw file dialog if open
+    if self.fileDialog then
+        self.fileDialog:draw(pass)
+    end
 end
 
 return SaveLoad

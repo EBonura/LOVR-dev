@@ -27,14 +27,21 @@ function lovr.load()
     
     -- Initialize save/load system
     scene.saveload = SaveLoad
+    scene.saveload:initialize()
     scene.ui.saveload = scene.saveload
 end
 
 function lovr.update(dt)
     scene.camera:update(dt)
+    scene.saveload:update(dt)
 end
 
 function lovr.keypressed(key)
+    -- Check if file dialog is open and handle its input first
+    if scene.saveload:handleKeyPressed(key) then
+        return
+    end
+
     -- Check for modifier keys
     local ctrl = lovr.system.isKeyDown('lctrl') or 
                 lovr.system.isKeyDown('rctrl') or
@@ -53,20 +60,19 @@ function lovr.keypressed(key)
         elseif key == 's' then
             if shift then
                 -- Save As (Ctrl+Shift+S)
-                local timestamp = os.date("%Y%m%d_%H%M%S")
-                scene.saveload:saveWorld(scene.world, "world_" .. timestamp .. ".json")
+                scene.saveload:promptSave(scene.world)
             else
                 -- Save (Ctrl+S)
                 if scene.saveload.currentFilename then
                     scene.saveload:saveWorld(scene.world, scene.saveload.currentFilename)
                 else
-                    scene.saveload:saveWorld(scene.world, "world.json")
+                    scene.saveload:promptSave(scene.world, "world.json")
                 end
             end
             return
         elseif key == 'o' then
             -- Load (Ctrl+O)
-            scene.saveload:loadWorld(scene.world, "world.json")
+            scene.saveload:promptLoad(scene.world)
             return
         end
     end
@@ -84,6 +90,10 @@ function lovr.keypressed(key)
     
     -- Let camera handle remaining keys
     scene.camera:handleKeyPressed(key)
+end
+
+function lovr.textinput(text)
+    scene.saveload:handleTextInput(text)
 end
 
 function calculateRayIntersection()
@@ -124,6 +134,11 @@ function calculateRayIntersection()
 end
 
 function lovr.mousemoved(x, y)
+    -- Check file dialog first
+    if scene.saveload:handleMouseMoved(x, y) then
+        return
+    end
+
     -- Update UI hover state
     if scene.ui:isPointInPanel(x, y) then
         scene.ui:updateHoveredButton(x, y)
@@ -131,7 +146,12 @@ function lovr.mousemoved(x, y)
 end
 
 function lovr.mousepressed(x, y, button)
-    -- Check UI interaction first
+    -- Check file dialog first
+    if scene.saveload:handleMousePressed(x, y, button) then
+        return
+    end
+
+    -- Check UI interaction
     if scene.ui:isPointInPanel(x, y) then
         scene.ui:mousepressed(x, y, button)
         if button == 1 then  -- Left click
@@ -181,6 +201,11 @@ function lovr.mousepressed(x, y, button)
 end
 
 function lovr.mousereleased(x, y, button)
+    -- Check file dialog first
+    if scene.saveload:handleMouseMoved(x, y) then
+        return
+    end
+
     -- Check UI interaction first
     if scene.ui:isPointInPanel(x, y) then
         scene.ui:mousereleased(x, y, button)
@@ -191,13 +216,19 @@ function lovr.mousereleased(x, y, button)
     scene.camera:mousereleased(x, y, button)
 end
 
+function lovr.wheelmoved(dx, dy)
+    if scene.saveload:handleScroll(dx, dy) then
+        return
+    end
+end
+
 function lovr.draw(pass)
     -- Draw 3D scene first
     pass:setViewPose(1, scene.camera.position, scene.camera.rotation)
     
-    -- Only process mouse interaction if not in UI
+    -- Only process mouse interaction if not in UI or file dialog
     local mx, my = lovr.system.getMousePosition()
-    if not scene.ui:isPointInPanel(mx, my) then
+    if not scene.ui:isPointInPanel(mx, y) and not scene.saveload.fileDialog.isOpen then
         -- Calculate ray intersection
         local intersection, t, rayStart, rayDir = calculateRayIntersection()
         
@@ -249,9 +280,10 @@ function lovr.draw(pass)
         scene.world.hoveredFace = nil
     end
     
-    -- Draw UI last
+    -- Draw UI
     pass:push()
     scene.ui:draw(pass)
+    scene.saveload:draw(pass)
     pass:pop()
 end
 
