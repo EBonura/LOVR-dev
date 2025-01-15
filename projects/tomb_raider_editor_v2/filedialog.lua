@@ -48,32 +48,46 @@ function FileDialog:new()
 end
 
 function FileDialog:initialize()
-    -- Set default save directory to LÖVR's save directory
-    self.currentPath = lovr.filesystem.getSaveDirectory()
+    -- Mount the existing levels directory
+    local levelsPath = lovr.filesystem.getSource() .. "/levels"
+    lovr.filesystem.mount(levelsPath, "levels")
+    print("Mounted levels directory:", levelsPath)
+    
+    -- Start in the levels directory
+    self.currentPath = "levels"
     self:refreshFileList()
 end
 
 function FileDialog:refreshFileList()
     self.files = {}
     
-    -- Add parent directory option if not at root
-    if self.currentPath ~= lovr.filesystem.getSaveDirectory() then
+    -- Add parent directory option if not at levels root
+    if self.currentPath ~= "levels" then
         table.insert(self.files, {
             name = "..",
             isDirectory = true
         })
     end
     
-    -- Get all files and directories
+    -- Get all files and directories from current path
     local items = lovr.filesystem.getDirectoryItems(self.currentPath)
+    
+    -- Debug output
+    print("Current path:", self.currentPath)
+    print("Number of items found:", #items)
+    
     for _, item in ipairs(items) do
-        local fullPath = self.currentPath .. "/" .. item
-        local isDirectory = lovr.filesystem.isDirectory(fullPath)
+        local itemPath = self.currentPath .. "/" .. item
+        local isDirectory = lovr.filesystem.isDirectory(itemPath)
         
-        table.insert(self.files, {
-            name = item,
-            isDirectory = isDirectory
-        })
+        -- Only show .json files and directories
+        if isDirectory or item:match("%.json$") then
+            print("Found item:", item, "Is directory:", isDirectory)
+            table.insert(self.files, {
+                name = item,
+                isDirectory = isDirectory
+            })
+        end
     end
     
     -- Sort: directories first, then files

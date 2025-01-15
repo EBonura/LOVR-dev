@@ -11,6 +11,11 @@ local SaveLoad = {
 }
 
 function SaveLoad:initialize()
+    -- Mount the existing levels directory
+    local levelsPath = lovr.filesystem.getSource() .. "/levels"
+    lovr.filesystem.mount(levelsPath, "levels")
+    print("SaveLoad: Mounted levels directory:", levelsPath)
+    
     self.fileDialog = FileDialog:new()
 end
 
@@ -99,6 +104,11 @@ function SaveLoad:deserializeBlock(data)
 end
 
 function SaveLoad:saveWorld(world, filename)
+    -- Ensure the filename is in the levels directory
+    if not filename:match("^levels/") then
+        filename = "levels/" .. filename
+    end
+    
     local data = {
         blocks = {},
         gridY = world.currentGridY
@@ -127,6 +137,7 @@ function SaveLoad:saveWorld(world, filename)
     local jsonString = json.encode(data)
     
     -- Save to file
+    print("Saving to:", filename)
     local success = lovr.filesystem.write(filename, jsonString)
     if success then
         self.currentFilename = filename
@@ -139,6 +150,12 @@ function SaveLoad:saveWorld(world, filename)
 end
 
 function SaveLoad:loadWorld(world, filename)
+    -- Ensure the filename is in the levels directory
+    if not filename:match("^levels/") then
+        filename = "levels/" .. filename
+    end
+    
+    print("Loading from:", filename)
     -- Read file contents
     local contents = lovr.filesystem.read(filename)
     if not contents then 
