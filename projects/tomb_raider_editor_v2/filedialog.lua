@@ -284,9 +284,9 @@ function FileDialog:handleMouseMoved(x, y)
     
     self.hoveredItem = nil
     
-    -- Check buttons
-    local buttonY = windowHeight - (dialogY + self.height - self.buttonHeight - self.padding)
-    if y >= buttonY - self.buttonHeight/2 and y <= buttonY + self.buttonHeight/2 then
+    -- Check buttons - using the same Y coordinate system
+    local buttonY = dialogY + self.height - self.buttonHeight - self.padding
+    if y >= buttonY and y <= buttonY + self.buttonHeight then
         local buttonWidth = (self.width - 3 * self.padding) / 2
         local confirmX = dialogX + self.padding + buttonWidth/2
         local cancelX = dialogX + self.width - buttonWidth/2 - self.padding
