@@ -153,6 +153,45 @@ function FileDialog:handleKeyPressed(key)
         end
         self:hide()
         return true
+    elseif key == "up" or key == "down" then
+        -- Find current selection index
+        local currentIndex = 1
+        if self.selectedFile then
+            for i, file in ipairs(self.files) do
+                if file == self.selectedFile then
+                    currentIndex = i
+                    break
+                end
+            end
+        end
+        
+        -- Calculate new index
+        local newIndex = currentIndex
+        if key == "up" then
+            newIndex = math.max(1, currentIndex - 1)
+        else
+            newIndex = math.min(#self.files, currentIndex + 1)
+        end
+        
+        -- Update selection
+        if newIndex ~= currentIndex then
+            local file = self.files[newIndex]
+            self.selectedFile = file
+            if not file.isDirectory then
+                self.filename = file.name
+            end
+            
+            -- Adjust scroll if necessary to keep selection in view
+            local minScroll = newIndex - self.maxVisibleItems
+            local maxScroll = newIndex - 1
+            if self.scrollOffset < minScroll then
+                self.scrollOffset = minScroll
+            elseif self.scrollOffset > maxScroll then
+                self.scrollOffset = maxScroll
+            end
+            self.scrollOffset = math.max(0, math.min(self.scrollOffset, #self.files - self.maxVisibleItems))
+        end
+        return true
     end
     
     return false
