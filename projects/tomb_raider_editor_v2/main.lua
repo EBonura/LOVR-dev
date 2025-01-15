@@ -42,6 +42,11 @@ function lovr.keypressed(key)
         return
     end
 
+    -- If dialog is open, don't process any other input
+    if scene.saveload.fileDialog.isOpen then
+        return
+    end
+
     -- Check for modifier keys
     local ctrl = lovr.system.isKeyDown('lctrl') or 
                 lovr.system.isKeyDown('rctrl') or
@@ -139,15 +144,46 @@ function lovr.mousemoved(x, y)
         return
     end
 
+    -- If dialog is open, don't process any other mouse movement
+    if scene.saveload.fileDialog.isOpen then
+        return
+    end
+
     -- Update UI hover state
     if scene.ui:isPointInPanel(x, y) then
         scene.ui:updateHoveredButton(x, y)
     end
 end
 
+function lovr.mousereleased(x, y, button)
+    -- Check file dialog first
+    if scene.saveload:handleMouseMoved(x, y) then
+        return
+    end
+
+    -- If dialog is open, don't process any other mouse input
+    if scene.saveload.fileDialog.isOpen then
+        return
+    end
+
+    -- Check UI interaction first
+    if scene.ui:isPointInPanel(x, y) then
+        scene.ui:mousereleased(x, y, button)
+        return
+    end
+    
+    -- Handle camera controls
+    scene.camera:mousereleased(x, y, button)
+end
+
 function lovr.mousepressed(x, y, button)
     -- Check file dialog first
     if scene.saveload:handleMousePressed(x, y, button) then
+        return
+    end
+
+    -- If dialog is open, don't process any other mouse input
+    if scene.saveload.fileDialog.isOpen then
         return
     end
 
@@ -200,21 +236,7 @@ function lovr.mousepressed(x, y, button)
     end
 end
 
-function lovr.mousereleased(x, y, button)
-    -- Check file dialog first
-    if scene.saveload:handleMouseMoved(x, y) then
-        return
-    end
 
-    -- Check UI interaction first
-    if scene.ui:isPointInPanel(x, y) then
-        scene.ui:mousereleased(x, y, button)
-        return
-    end
-    
-    -- Handle camera controls
-    scene.camera:mousereleased(x, y, button)
-end
 
 function lovr.wheelmoved(dx, dy)
     if scene.saveload:handleScroll(dx, dy) then
