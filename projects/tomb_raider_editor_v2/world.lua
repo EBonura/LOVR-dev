@@ -144,10 +144,10 @@ function World:duplicateSelectedBlocks()
     
     -- Create duplicates of all selected blocks
     for _, block in ipairs(self.selectedBlocks) do
-        -- Create new block at same position
+        -- Create new block one unit up from the original
         local newBlock = Block:new(
             block.position.x,
-            block.position.y,
+            block.position.y + 1,  -- Offset upward by 1 unit
             block.position.z
         )
         
