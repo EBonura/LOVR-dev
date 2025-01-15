@@ -12,7 +12,7 @@ local World = {
     -- Mode handling
     MODE_PLACE = "PLACE",
     MODE_SELECT = "SELECT",
-    MODE_FACE_SELECT = "FACE_SELECT",  -- New mode
+    MODE_FACE_SELECT = "FACE_SELECT",
 
     selectedFace = nil,  -- Will store {block = blockRef, face = "front"|"back"|"left"|"right"|"top"|"bottom"}
     hoveredFace = nil,   -- Same structure as selectedFace
@@ -97,14 +97,73 @@ function World:deleteBlock(x, y, z)
     return false
 end
 
+function World:moveSelectedBlocks(dx, dy, dz)
+    if self.currentMode ~= self.MODE_SELECT or #self.selectedBlocks == 0 then
+        return false
+    end
+
+    -- First check if any block would collide after movement
+    for _, block in ipairs(self.selectedBlocks) do
+        local newX = block.position.x + dx
+        local newY = block.position.y + dy
+        local newZ = block.position.z + dz
+
+        -- Check if new position would collide with any non-selected block
+        for _, otherBlock in ipairs(self.blocks) do
+            if not self:isBlockSelected(otherBlock) and
+               otherBlock.position.x == newX and
+               otherBlock.position.y == newY and
+               otherBlock.position.z == newZ then
+                return false -- Movement would cause collision
+            end
+        end
+    end
+
+    -- If no collisions, perform the movement
+    for _, block in ipairs(self.selectedBlocks) do
+        block.position:add(vec3(dx, dy, dz))
+    end
+    return true
+end
+
+function World:isBlockSelected(block)
+    for _, selectedBlock in ipairs(self.selectedBlocks) do
+        if selectedBlock == block then
+            return true
+        end
+    end
+    return false
+end
+
 function World:handleKeyPressed(key)
+    if self.currentMode == self.MODE_SELECT then
+        local moved = false
+        if key == "left" then
+            moved = self:moveSelectedBlocks(-1, 0, 0)
+        elseif key == "right" then
+            moved = self:moveSelectedBlocks(1, 0, 0)
+        elseif key == "up" then
+            moved = self:moveSelectedBlocks(0, 0, -1)
+        elseif key == "down" then
+            moved = self:moveSelectedBlocks(0, 0, 1)
+        elseif key == "pageup" then
+            moved = self:moveSelectedBlocks(0, 1, 0)
+        elseif key == "pagedown" then
+            moved = self:moveSelectedBlocks(0, -1, 0)
+        end
+        if moved then return true end
+    end
+    
     if self.currentMode == self.MODE_FACE_SELECT and self.selectedFace then
         if key == "up" then
             self.selectedFace.block:moveFaceVertices(self.selectedFace.face, 1)  -- Move up
+            return true
         elseif key == "down" then
             self.selectedFace.block:moveFaceVertices(self.selectedFace.face, -1)  -- Move down
+            return true
         end
     end
+    return false
 end
 
 function World:handleClick(x, y, z, isShiftHeld)
