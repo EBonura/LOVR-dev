@@ -1,18 +1,26 @@
 local UI = {
-    panelWidth = 300,  -- Width in pixels
+    -- Panel dimensions and styling
+    panelWidth = 300,
     backgroundColor = {0.2, 0.2, 0.2, 0.9},
-    camera = nil,      -- Camera reference
-    textures = {},     -- Store loaded textures
-    textureSize = 64,  -- Display size for texture previews
-    padding = 10,      -- Padding between elements
-    selectedTexture = nil, -- Currently selected texture
-    startY = nil,      -- Starting Y position for texture grid
-    texPerRow = nil,   -- Number of textures per row
-    world = nil,       -- Reference to world
+    padding = 10,
     
-    -- New properties for folder navigation
+    -- References to other modules
+    camera = nil,
+    world = nil,
+    saveload = nil,
+    
+    -- Texture management
+    textures = {},
+    textureSize = 64,
+    selectedTexture = nil,
+    startY = nil,
+    texPerRow = nil,
+    
+    -- Folder navigation
     availableFolders = {"Brick", "Floor", "Metal", "Misc", "Stains", "Stone", "Wall"},
     currentFolderIndex = 1,
+    
+    -- Common UI element sizes
     buttonWidth = 30,
     buttonHeight = 30,
     
@@ -23,6 +31,14 @@ local UI = {
         PLACE = {0.2, 0.8, 0.2, 0.8},       -- Green for place mode
         SELECT = {0.2, 0.2, 0.8, 0.8},      -- Blue for select mode
         FACE_SELECT = {0.8, 0.2, 0.8, 0.8}  -- Purple for face select mode
+    },
+
+    -- File operation buttons
+    fileButtons = {
+        { text = "New", shortcut = "Ctrl+N", action = "new" },
+        { text = "Save", shortcut = "Ctrl+S", action = "save" },
+        { text = "Save As", shortcut = "Ctrl+Shift+S", action = "saveas" },
+        { text = "Load", shortcut = "Ctrl+O", action = "load" }
     }
 }
 
@@ -48,7 +64,7 @@ function UI:previousFolder()
 end
 
 function UI:loadTexturesFromCurrentFolder()
-    -- Store the current texture info before loading new folder
+    -- Store current texture info before loading new folder
     local previousTexture = nil
     if self.selectedTexture then
         previousTexture = {
@@ -66,7 +82,6 @@ function UI:loadTexturesFromCurrentFolder()
         local filename = string.format("Horror_%s_%02d-128x128.png", folder, i)
         local path = folderPath .. filename
         
-        -- Try to load the texture
         local success, texture = pcall(lovr.graphics.newTexture, path)
         if success then
             table.insert(self.textures, {
@@ -79,9 +94,8 @@ function UI:loadTexturesFromCurrentFolder()
         end
     end
     
-    -- Only select first texture if we don't have a previous selection
+    -- Restore previous texture selection if possible
     if previousTexture then
-        -- Try to find the matching texture in new folder
         if previousTexture.folder == folder then
             for _, tex in ipairs(self.textures) do
                 if tex.number == previousTexture.number then
@@ -92,14 +106,14 @@ function UI:loadTexturesFromCurrentFolder()
         end
     end
     
-    -- Fall back to first texture only if no previous selection
+    -- Fall back to first texture if needed
     if #self.textures > 0 and not self.selectedTexture then
         self.selectedTexture = self.textures[1]
     end
 end
 
 function UI:findTextureInFolder(texture, folder)
-    -- First, try to find the original texture's path
+    -- First try to find the texture in current textures
     local originalPath = nil
     for _, tex in ipairs(self.textures) do
         if tex.texture == texture then
@@ -108,14 +122,13 @@ function UI:findTextureInFolder(texture, folder)
         end
     end
     
-    -- If we couldn't find the original path, try to construct it from the pattern
     if not originalPath then
+        -- Try to construct path from pattern
         local folderPath = "textures/" .. folder .. "/"
         for i = 1, 14 do
             local filename = string.format("Horror_%s_%02d-128x128.png", folder, i)
             local path = folderPath .. filename
             
-            -- Try to load this texture
             local success, testTexture = pcall(lovr.graphics.newTexture, path)
             if success and testTexture == texture then
                 originalPath = path
@@ -124,16 +137,14 @@ function UI:findTextureInFolder(texture, folder)
         end
     end
     
-    if not originalPath then
-        return false
-    end
+    if not originalPath then return false end
     
-    -- Switch to the target folder and load its textures
+    -- Switch to target folder and load textures
     local prevIndex = self.currentFolderIndex
     self.currentFolderIndex = self:getFolderIndex(folder)
     self:loadTexturesFromCurrentFolder()
     
-    -- Find and select the matching texture by comparing paths
+    -- Find and select matching texture
     for _, tex in ipairs(self.textures) do
         if tex.path == originalPath then
             self.selectedTexture = tex
@@ -141,72 +152,29 @@ function UI:findTextureInFolder(texture, folder)
         end
     end
     
-    -- If we didn't find a match, revert to the previous folder
+    -- Revert if not found
     self.currentFolderIndex = prevIndex
     self:loadTexturesFromCurrentFolder()
     return false
 end
 
-
 function UI:getFolderIndex(folderName)
     for i, folder in ipairs(self.availableFolders) do
-        if folder == folderName then
-            return i
-        end
+        if folder == folderName then return i end
     end
-    return 1  -- Default to first folder if not found
-end
-
-function UI:getTextureFilenameFromObject(texture)
-    -- Try to find the texture in current folder first
-    for _, tex in ipairs(self.textures) do
-        if tex.texture == texture then
-            return string.format("Horror_%s_%02d-128x128.png", tex.folder, tex.number)
-        end
-    end
-    return nil
-end
-
-function UI:getTextureInfo(texture)
-    -- Try to find it in current folder first
-    for _, tex in ipairs(self.textures) do
-        if tex.texture == texture then
-            return {
-                folder = tex.folder,
-                number = tex.number
-            }
-        end
-    end
-    
-    -- Get the original texture's filename pattern
-    local origFilename = self:getTextureFilenameFromObject(texture)
-    if origFilename then
-        -- Extract folder and number from filename
-        local folder, number = origFilename:match("Horror_([^_]+)_(%d+)")
-        if folder and number then
-            number = tonumber(number)
-            return {
-                folder = folder,
-                number = number
-            }
-        end
-    end
-    
-    return nil
+    return 1
 end
 
 function UI:setSelectedTextureByImage(texture, textureInfo)
-    if not texture or not textureInfo then 
-        return false 
-    end
+    if not texture or not textureInfo then return false end
     
-    -- Switch to the correct folder if needed
+    -- Switch to correct folder if needed
     if textureInfo.folder ~= self:getCurrentFolder() then
         self.currentFolderIndex = self:getFolderIndex(textureInfo.folder)
         self:loadTexturesFromCurrentFolder()
     end
     
-    -- Find and select the texture with matching number
+    -- Find and select matching texture
     for _, tex in ipairs(self.textures) do
         if tex.folder == textureInfo.folder and tex.number == textureInfo.number then
             self.selectedTexture = tex
@@ -219,10 +187,11 @@ end
 
 function UI:drawModeIndicator(pass)
     if not self.world then return end
-    
-    -- Draw background panel
+
     local currentMode = self.world.currentMode
     local bgColor = self.modeColors[currentMode] or {0.2, 0.2, 0.2, 0.8}
+    
+    -- Draw background
     pass:setColor(unpack(bgColor))
     pass:plane(
         self.modeIndicatorWidth/2,
@@ -262,7 +231,7 @@ function UI:drawModeIndicator(pass)
 end
 
 function UI:drawFolderNavigation(pass, x, y)
-    -- Draw previous folder button
+    -- Previous folder button
     pass:setColor(0.3, 0.3, 0.3, 1)
     pass:plane(
         x + self.buttonWidth/2,
@@ -274,7 +243,7 @@ function UI:drawFolderNavigation(pass, x, y)
     pass:setColor(1, 1, 1, 1)
     pass:text("<", x + self.buttonWidth/2, y, 0, 0.8)
     
-    -- Draw current folder name
+    -- Current folder name
     local folderNameWidth = self.panelWidth - (2 * self.buttonWidth) - (2 * self.padding)
     pass:setColor(0.25, 0.25, 0.25, 1)
     pass:plane(
@@ -293,7 +262,7 @@ function UI:drawFolderNavigation(pass, x, y)
         0.6
     )
     
-    -- Draw next folder button
+    -- Next folder button
     pass:setColor(0.3, 0.3, 0.3, 1)
     pass:plane(
         x + self.panelWidth - self.buttonWidth/2,
@@ -304,6 +273,52 @@ function UI:drawFolderNavigation(pass, x, y)
     )
     pass:setColor(1, 1, 1, 1)
     pass:text(">", x + self.panelWidth - self.buttonWidth/2, y, 0, 0.8)
+end
+
+function UI:drawFileButtons(pass, x, y)
+    local buttonWidth = self.panelWidth / #self.fileButtons
+    
+    for i, button in ipairs(self.fileButtons) do
+        local buttonX = x + (i-1) * buttonWidth
+        
+        -- Draw button background
+        pass:setColor(0.3, 0.3, 0.3, 1)
+        pass:plane(
+            buttonX + buttonWidth/2,
+            y - self.buttonHeight/2,
+            0,
+            buttonWidth - 4,
+            self.buttonHeight
+        )
+        
+        -- Draw button text
+        pass:setColor(1, 1, 1, 1)
+        pass:text(
+            button.text,
+            buttonX + buttonWidth/2,
+            y - self.buttonHeight/2,
+            0,
+            0.4
+        )
+    end
+    
+    -- Draw current filename if one is set
+    if self.saveload and self.saveload.currentFilename then
+        pass:setColor(0.8, 0.8, 0.8, 0.6)
+        pass:text(
+            "Current: " .. self.saveload.currentFilename,
+            x + self.padding,
+            y - self.buttonHeight - 5,
+            0,
+            0.3,
+            0,
+            0, 1, 0,
+            0,
+            'left'
+        )
+    end
+    
+    return y - self.buttonHeight
 end
 
 function UI:draw(pass)
@@ -317,10 +332,10 @@ function UI:draw(pass)
     -- Reset view transform
     pass:setViewPose(1, mat4():identity())
     
-    -- Draw mode indicator first
+    -- Draw mode indicator
     self:drawModeIndicator(pass)
     
-    -- Calculate panel position (right side of screen)
+    -- Calculate panel position
     local panelX = width - self.panelWidth
     
     -- Draw panel background
@@ -333,12 +348,10 @@ function UI:draw(pass)
         height
     )
     
-    -- Set up text
+    -- Draw title
     pass:setColor(1, 1, 1, 1)
     local font = lovr.graphics.getDefaultFont()
     font:setPixelDensity(1)
-    
-    -- Draw title
     pass:text(
         "Texture Panel",
         panelX + self.padding,
@@ -354,7 +367,7 @@ function UI:draw(pass)
     -- Draw folder navigation
     self:drawFolderNavigation(pass, panelX, height - 70)
 
-    -- Draw selected texture info right below folder navigation
+    -- Draw selected texture info
     if self.selectedTexture then
         pass:text(
             "Selected: " .. self.selectedTexture.name,
@@ -369,12 +382,12 @@ function UI:draw(pass)
         )
     end
     
-    -- Update class variables for click detection
-    self.startY = height - 120  -- Adjusted to account for folder navigation
+    -- Set up texture grid
+    self.startY = height - 120
     self.texPerRow = math.floor((self.panelWidth - self.padding * 2) / self.textureSize)
     local spacing = self.textureSize + self.padding
     
-    -- Draw textures grid
+    -- Draw texture grid
     for i, tex in ipairs(self.textures) do
         local row = math.floor((i-1) / self.texPerRow)
         local col = (i-1) % self.texPerRow
@@ -382,7 +395,7 @@ function UI:draw(pass)
         local x = panelX + self.padding + col * spacing
         local y = self.startY - row * spacing
         
-        -- Draw texture preview
+        -- Draw texture
         pass:setColor(1, 1, 1, 1)
         pass:setMaterial(tex.texture)
         pass:plane(
@@ -394,7 +407,7 @@ function UI:draw(pass)
         )
         pass:setMaterial()
         
-        -- Draw selection highlight if this is the selected texture
+        -- Draw selection highlight
         if self.selectedTexture == tex then
             pass:setColor(1, 0, 0, 1)
             pass:line(
@@ -416,12 +429,19 @@ function UI:draw(pass)
         end
     end
     
-    -- Draw debug info at the bottom
+    -- Draw file buttons at the bottom
+    local bottomY = 120
+    local nextY = self:drawFileButtons(pass, panelX, bottomY)
+    
+    -- Draw status message
+    nextY = self:drawStatusMessage(pass, panelX, nextY)
+    
+    -- Draw debug info below status
     pass:setColor(1, 1, 1, 1)
     pass:text(
         self.camera:getDebugText(),
         panelX + self.padding,
-        60,
+        nextY - 20,
         0,
         0.6,
         0,
@@ -431,81 +451,201 @@ function UI:draw(pass)
     )
 end
 
+function UI:drawStatusMessage(pass, x, y)
+    if not self.saveload then return y end
+
+    if self.saveload.lastError then
+        -- Draw error message in red
+        pass:setColor(1, 0.2, 0.2, 1)
+        pass:text(
+            self.saveload.lastError,
+            x + self.padding,
+            y - 20,
+            0,
+            0.4,
+            0,
+            0, 1, 0,
+            0,
+            'left'
+        )
+        return y - 40
+    elseif self.saveload.lastMessage then
+        -- Draw success message in green
+        pass:setColor(0.2, 1, 0.2, 1)
+        pass:text(
+            self.saveload.lastMessage,
+            x + self.padding,
+            y - 20,
+            0,
+            0.4,
+            0,
+            0, 1, 0,
+            0,
+            'left'
+        )
+        return y - 40
+    end
+    
+    return y
+end
+
+function UI:handleFileButtonClick(x, y)
+    local width = lovr.system.getWindowWidth()
+    local panelX = width - self.panelWidth
+    local buttonWidth = self.panelWidth / #self.fileButtons
+    local bottomY = 120
+    
+    if y >= bottomY - self.buttonHeight and y <= bottomY then
+        local buttonIndex = math.floor((x - panelX) / buttonWidth) + 1
+        local button = self.fileButtons[buttonIndex]
+        
+        if button then
+            if button.action == "new" then
+                if self.saveload then
+                    self.saveload:newWorld(self.world)
+                end
+            elseif button.action == "save" then
+                if self.saveload then
+                    if self.saveload.currentFilename then
+                        self.saveload:saveWorld(self.world, self.saveload.currentFilename)
+                    else
+                        -- Default filename if none set
+                        self.saveload:saveWorld(self.world, "world.json")
+                    end
+                end
+            elseif button.action == "saveas" then
+                if self.saveload then
+                    -- For now, just save with a timestamp
+                    local timestamp = os.date("%Y%m%d_%H%M%S")
+                    self.saveload:saveWorld(self.world, "world_" .. timestamp .. ".json")
+                end
+            elseif button.action == "load" then
+                if self.saveload then
+                    -- For now, just try to load the default file
+                    self.saveload:loadWorld(self.world, "world.json")
+                end
+            end
+            return true
+        end
+    end
+    return false
+end
+
 function UI:isPointInPanel(x, y)
     local width = lovr.system.getWindowWidth()
     return x >= (width - self.panelWidth)
 end
 
 function UI:handleClick(x, y)
-    if not self:isPointInPanel(x, y) then
-        return false
-    end
-    
-    -- Get window and panel coordinates
-    local width = lovr.system.getWindowWidth()
-    local height = lovr.system.getWindowHeight()
-    local panelX = width - self.panelWidth
-    
-    local uiY = height - y
-    local folderNavY = height - 70
-    
-    if math.abs(uiY - folderNavY) <= self.buttonHeight/2 then
-        if x >= panelX and x < panelX + self.buttonWidth then
-            self:previousFolder()
-            return true
-        end
-        
-        local nextButtonX = panelX + self.panelWidth - self.buttonWidth
-        if x >= nextButtonX and x < panelX + self.panelWidth then
-            self:nextFolder()
-            return true
-        end
+if not self:isPointInPanel(x, y) then
+    return false
+end
+
+-- Check file buttons first
+if self:handleFileButtonClick(x, y) then
+    return true
+end
+
+-- Get window and panel coordinates
+local width = lovr.system.getWindowWidth()
+local height = lovr.system.getWindowHeight()
+local panelX = width - self.panelWidth
+
+-- Check folder navigation buttons
+local folderNavY = height - 70
+if math.abs(height - y - folderNavY) <= self.buttonHeight/2 then
+    if x >= panelX and x < panelX + self.buttonWidth then
+        self:previousFolder()
         return true
     end
     
-    local relativeX = x - panelX - self.padding
-    local windowY = lovr.system.getWindowHeight() - y
-    local verticalOffset = self.startY - windowY
-    local spacing = self.textureSize + self.padding
-    local row = math.floor(verticalOffset / spacing)
-    local col = math.floor(relativeX / spacing)
-    local index = row * self.texPerRow + col + 1
+    local nextButtonX = panelX + self.panelWidth - self.buttonWidth
+    if x >= nextButtonX and x < panelX + self.panelWidth then
+        self:nextFolder()
+        return true
+    end
+    return true
+end
+
+-- Check texture grid clicks
+local relativeX = x - panelX - self.padding
+local windowY = lovr.system.getWindowHeight() - y
+local verticalOffset = self.startY - windowY
+local spacing = self.textureSize + self.padding
+local row = math.floor(verticalOffset / spacing)
+local col = math.floor(relativeX / spacing)
+local index = row * self.texPerRow + col + 1
+
+if index >= 1 and index <= #self.textures and col < self.texPerRow and row >= 0 then
+    local selectedTex = self.textures[index]
+    self.selectedTexture = selectedTex
     
-    if index >= 1 and index <= #self.textures and col < self.texPerRow and row >= 0 then
-        local selectedTex = self.textures[index]
-        self.selectedTexture = selectedTex
-        
-        -- Create texture info
-        local textureInfo = {
-            folder = selectedTex.folder,
-            number = selectedTex.number
-        }
-        
-        -- Update textures based on mode
-        if self.world then
-            if self.world.currentMode == self.world.MODE_SELECT then
-                -- In block select mode, update all selected blocks
-                for _, block in ipairs(self.world.selectedBlocks) do
-                    block:setTexture(selectedTex.texture, textureInfo)
-                end
-            elseif self.world.currentMode == self.world.MODE_FACE_SELECT then
-                -- In face select mode, update all selected faces
-                for _, faceInfo in ipairs(self.world.selectedFaces) do
-                    local block = faceInfo.block
-                    local face = faceInfo.face
-                    block:setFaceTexture(
-                        face,
-                        selectedTex.texture,
-                        textureInfo
-                    )
-                end
+    -- Create texture info
+    local textureInfo = {
+        folder = selectedTex.folder,
+        number = selectedTex.number
+    }
+    
+    -- Update textures based on mode
+    if self.world then
+        if self.world.currentMode == self.world.MODE_SELECT then
+            -- Update all selected blocks
+            for _, block in ipairs(self.world.selectedBlocks) do
+                block:setTexture(selectedTex.texture, textureInfo)
+            end
+        elseif self.world.currentMode == self.world.MODE_FACE_SELECT then
+            -- Update all selected faces
+            for _, faceInfo in ipairs(self.world.selectedFaces) do
+                local block = faceInfo.block
+                local face = faceInfo.face
+                block:setFaceTexture(
+                    face,
+                    selectedTex.texture,
+                    textureInfo
+                )
             end
         end
-        
-        return true
     end
     
-    return false
+    return true
+end
+
+return false
+end
+
+function UI:getTextureFilenameFromObject(texture)
+for _, tex in ipairs(self.textures) do
+    if tex.texture == texture then
+        return string.format("Horror_%s_%02d-128x128.png", tex.folder, tex.number)
+    end
+end
+return nil
+end
+
+function UI:getTextureInfo(texture)
+-- Try to find in current folder first
+for _, tex in ipairs(self.textures) do
+    if tex.texture == texture then
+        return {
+            folder = tex.folder,
+            number = tex.number
+        }
+    end
+end
+
+-- Get original texture's filename pattern
+local origFilename = self:getTextureFilenameFromObject(texture)
+if origFilename then
+    local folder, number = origFilename:match("Horror_([^_]+)_(%d+)")
+    if folder and number then
+        return {
+            folder = folder,
+            number = tonumber(number)
+        }
+    end
+end
+
+return nil
 end
 
 return UI
