@@ -135,8 +135,62 @@ function World:isBlockSelected(block)
     return false
 end
 
+function World:duplicateSelectedBlocks()
+    if self.currentMode ~= self.MODE_SELECT or #self.selectedBlocks == 0 then
+        return false
+    end
+
+    local newBlocks = {}
+    
+    -- Create duplicates of all selected blocks
+    for _, block in ipairs(self.selectedBlocks) do
+        -- Create new block at same position
+        local newBlock = Block:new(
+            block.position.x,
+            block.position.y,
+            block.position.z
+        )
+        
+        -- Copy vertex heights
+        for i = 1, 4 do
+            newBlock.vertices[i] = block.vertices[i]
+        end
+        
+        -- Copy textures for all faces
+        local faces = {"front", "back", "left", "right", "top", "bottom"}
+        for _, face in ipairs(faces) do
+            if block.faceTextures[face] then
+                newBlock:setFaceTexture(
+                    face,
+                    block.faceTextures[face],
+                    block.faceTextureInfos[face]
+                )
+            end
+        end
+        
+        table.insert(self.blocks, newBlock)
+        table.insert(newBlocks, newBlock)
+    end
+    
+    -- Select the new blocks
+    self.selectedBlocks = newBlocks
+    if #newBlocks > 0 then
+        self.selectedBlock = newBlocks[1]
+    end
+    
+    return true
+end
+
 function World:handleKeyPressed(key)
     if self.currentMode == self.MODE_SELECT then
+        -- Check for Command/Control + D
+        if key == "d" and (lovr.system.isKeyDown('lctrl') or lovr.system.isKeyDown('rctrl') or
+                          lovr.system.isKeyDown('lgui') or lovr.system.isKeyDown('rgui')) then
+            -- Duplicate blocks
+            return self:duplicateSelectedBlocks()
+        end
+        
+        -- Handle movement
         local moved = false
         if key == "left" then
             moved = self:moveSelectedBlocks(-1, 0, 0)
