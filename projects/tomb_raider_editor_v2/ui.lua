@@ -376,21 +376,6 @@ function UI:draw(pass)
     -- Get window dimensions
     local width, height = lovr.system.getWindowDimensions()
     
-    -- Draw camera info in top right of 3D view (before UI panel)
-    pass:setColor(1, 1, 1, 0.7)
-    local cameraText = self.camera:getDebugText()
-    pass:text(
-        cameraText,
-        width - self.panelWidth - 20, -- 20 pixels padding from UI panel
-        30,  -- 30 pixels from top
-        0,
-        0.3,  -- Smaller text size
-        0,
-        0, 1, 0,
-        0,
-        'right'
-    )
-    
     -- Set up 2D orthographic projection for UI
     local projection = mat4():orthographic(0, width, height, 0, -10, 10)
     pass:setProjection(1, projection)
@@ -508,6 +493,20 @@ function UI:draw(pass)
     
     -- Draw status message
     self:drawStatusMessage(pass, panelX, nextY)
+
+    -- Draw camera info at the very bottom
+    pass:setColor(1, 1, 1, 0.7)
+    pass:text(
+        self.camera:getDebugText(),
+        0,
+        height - 50,  -- Position below "Camera Info:" title
+        0,
+        0.4,
+        0,
+        0, 1, 0,
+        0,
+        'left'
+    )
 end
 
 function UI:isPointInPanel(x, y)
