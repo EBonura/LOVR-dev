@@ -124,6 +124,23 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
     local isHighlighted = isHovered or isSelected
     local faceTexture = self.faceTextures[faceName]
     
+    -- Calculate face height percentage for UV adjustment
+    local heightPercentage
+    if normal.y ~= 0 then
+        -- For top/bottom faces, use average height of all corners
+        heightPercentage = 1.0  -- Top/bottom faces don't deform vertically
+    else
+        -- For side faces, calculate based on the actual height of the face
+        local height = math.abs(v1.y - v3.y)
+        heightPercentage = height  -- Original height is 1.0
+    end
+    
+    -- Adjust UV coordinates based on height
+    local v1UV = { 0, 0 }
+    local v2UV = { 1, 0 }
+    local v3UV = { 0, heightPercentage }
+    local v4UV = { 1, heightPercentage }
+    
     -- Create mesh for the face (two triangles)
     local format = {
         { 'VertexPosition', 'vec3' },
@@ -131,16 +148,16 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
         { 'VertexUV', 'vec2' }
     }
     
-    -- Create vertices for two triangles
+    -- Create vertices for two triangles with adjusted UVs
     local vertices = {
         -- First triangle (v1, v2, v3)
-        { v1.x, v1.y, v1.z, normal.x, normal.y, normal.z, 0, 0 },
-        { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, 1, 0 },
-        { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, 0, 1 },
+        { v1.x, v1.y, v1.z, normal.x, normal.y, normal.z, v1UV[1], v1UV[2] },
+        { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, v2UV[1], v2UV[2] },
+        { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, v3UV[1], v3UV[2] },
         -- Second triangle (v2, v4, v3)
-        { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, 1, 0 },
-        { v4.x, v4.y, v4.z, normal.x, normal.y, normal.z, 1, 1 },
-        { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, 0, 1 }
+        { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, v2UV[1], v2UV[2] },
+        { v4.x, v4.y, v4.z, normal.x, normal.y, normal.z, v4UV[1], v4UV[2] },
+        { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, v3UV[1], v3UV[2] }
     }
     
     local mesh = lovr.graphics.newMesh(format, vertices)
@@ -165,21 +182,21 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
                 v1.y + normal.y * offset, 
                 v1.z + normal.z * offset, 
                 normal.x, normal.y, normal.z, 
-                0, 0 
+                v1UV[1], v1UV[2]
             },
             { 
                 v2.x + normal.x * offset, 
                 v2.y + normal.y * offset, 
                 v2.z + normal.z * offset, 
                 normal.x, normal.y, normal.z, 
-                1, 0 
+                v2UV[1], v2UV[2]
             },
             { 
                 v3.x + normal.x * offset, 
                 v3.y + normal.y * offset, 
                 v3.z + normal.z * offset, 
                 normal.x, normal.y, normal.z, 
-                0, 1 
+                v3UV[1], v3UV[2]
             },
             -- Second triangle
             { 
@@ -187,21 +204,21 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
                 v2.y + normal.y * offset, 
                 v2.z + normal.z * offset, 
                 normal.x, normal.y, normal.z, 
-                1, 0 
+                v2UV[1], v2UV[2]
             },
             { 
                 v4.x + normal.x * offset, 
                 v4.y + normal.y * offset, 
                 v4.z + normal.z * offset, 
                 normal.x, normal.y, normal.z, 
-                1, 1 
+                v4UV[1], v4UV[2]
             },
             { 
                 v3.x + normal.x * offset, 
                 v3.y + normal.y * offset, 
                 v3.z + normal.z * offset, 
                 normal.x, normal.y, normal.z, 
-                0, 1 
+                v3UV[1], v3UV[2]
             }
         }
         
