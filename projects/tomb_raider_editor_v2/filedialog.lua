@@ -170,7 +170,7 @@ function FileDialog:handleMousePressed(x, y, button)
     local windowWidth, windowHeight = lovr.system.getWindowDimensions()
     local dialogX = (windowWidth - self.width) / 2
     local dialogY = (windowHeight - self.height) / 2
-    local windowY = y  -- Keep Y as is, since we're already in window coordinates
+    local windowY = y
     
     -- Check if click is within dialog bounds
     if x < dialogX or x > dialogX + self.width or
@@ -189,28 +189,33 @@ function FileDialog:handleMousePressed(x, y, button)
         return true
     end
     
-    -- Check file list
-    local listY = dialogY + self.padding
-    local relativeY = windowY - listY
-    local itemIndex = math.floor(relativeY / self.itemHeight) + 1 + self.scrollOffset
+    -- Check file list - using same calculation as handleMouseMoved
+    local listY = dialogY + self.padding + 40  -- Account for title and path display
+    local listAreaHeight = self.height - (3 * self.buttonHeight + 4 * self.padding)
     
-    if itemIndex >= 1 and itemIndex <= #self.files then
-        local file = self.files[itemIndex]
-        if file.isDirectory then
-            if file.name == ".." then
-                -- Go up one directory
-                self.currentPath = self.currentPath:match("(.*)/.*$") or ""
+    if x >= dialogX + self.padding and x <= dialogX + self.width - self.padding and
+       windowY >= listY and windowY <= listY + listAreaHeight then
+        local relativeY = windowY - listY
+        local itemIndex = math.floor(relativeY / self.itemHeight) + 1 + self.scrollOffset
+        
+        if itemIndex >= 1 and itemIndex <= #self.files then
+            local file = self.files[itemIndex]
+            if file.isDirectory then
+                if file.name == ".." then
+                    -- Go up one directory
+                    self.currentPath = self.currentPath:match("(.*)/.*$") or ""
+                else
+                    -- Enter directory
+                    self.currentPath = self.currentPath .. "/" .. file.name
+                end
+                self:refreshFileList()
             else
-                -- Enter directory
-                self.currentPath = self.currentPath .. "/" .. file.name
+                -- Select file
+                self.selectedFile = file
+                self.filename = file.name
             end
-            self:refreshFileList()
-        else
-            -- Select file
-            self.selectedFile = file
-            self.filename = file.name
+            return true
         end
-        return true
     end
     
     -- Check buttons
