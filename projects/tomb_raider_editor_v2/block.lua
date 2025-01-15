@@ -324,8 +324,13 @@ function Block:intersectFace(rayStart, rayDir)
                 local v1Index, v2Index = vertices[1], vertices[2]
                 local x1, y1, z1 = self:getCornerPosition(v1Index)
                 local x2, y2, z2 = self:getCornerPosition(v2Index)
-                -- Use actual heights for the face center
-                centerPoint = vec3((x1 + x2)/2, (y1 + y2)/2, (z1 + z2)/2)
+                -- Include bottom vertices in center calculation
+                local bottomY = self.position.y
+                centerPoint = vec3(
+                    (x1 + x2)/2,
+                    (y1 + y2 + bottomY + bottomY)/4,  -- Average of top and bottom heights
+                    (z1 + z2)/2
+                )
             end
             
             -- Check for intersection with plane defined by face
@@ -339,21 +344,23 @@ function Block:intersectFace(rayStart, rayDir)
                     
                     -- Check bounds based on face orientation
                     if face.name == "front" or face.name == "back" then
-                        local y1 = self:getCornerPosition(vertices[1])
-                        local _, y2 = self:getCornerPosition(vertices[2])
-                        local minY = math.min(y1, y2)
+                        local x1, y1, _ = self:getCornerPosition(vertices[1])
+                        local x2, y2, _ = self:getCornerPosition(vertices[2])
+                        local minY = math.min(y1, y2, self.position.y)
                         local maxY = math.max(y1, y2)
-                        inBounds = math.abs(hitPoint.x - self.position.x) <= 0.5 and
-                                  hitPoint.y >= minY and
-                                  hitPoint.y <= maxY
+                        local minX = math.min(x1, x2)
+                        local maxX = math.max(x1, x2)
+                        inBounds = hitPoint.x >= minX and hitPoint.x <= maxX and
+                                  hitPoint.y >= minY and hitPoint.y <= maxY
                     elseif face.name == "left" or face.name == "right" then
-                        local _, y1 = self:getCornerPosition(vertices[1])
-                        local _, y2 = self:getCornerPosition(vertices[2])
-                        local minY = math.min(y1, y2)
+                        local _, y1, z1 = self:getCornerPosition(vertices[1])
+                        local _, y2, z2 = self:getCornerPosition(vertices[2])
+                        local minY = math.min(y1, y2, self.position.y)
                         local maxY = math.max(y1, y2)
-                        inBounds = math.abs(hitPoint.z - self.position.z) <= 0.5 and
-                                  hitPoint.y >= minY and
-                                  hitPoint.y <= maxY
+                        local minZ = math.min(z1, z2)
+                        local maxZ = math.max(z1, z2)
+                        inBounds = hitPoint.z >= minZ and hitPoint.z <= maxZ and
+                                  hitPoint.y >= minY and hitPoint.y <= maxY
                     elseif face.name == "top" then
                         -- For top face, check if point is within the deformed face boundary
                         local corners = {}
