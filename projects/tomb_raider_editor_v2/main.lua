@@ -123,9 +123,17 @@ function calculateRayIntersection()
     return intersection, t, rayStart, rayDirection
 end
 
+function lovr.mousemoved(x, y)
+    -- Update UI hover state
+    if scene.ui:isPointInPanel(x, y) then
+        scene.ui:updateHoveredButton(x, y)
+    end
+end
+
 function lovr.mousepressed(x, y, button)
     -- Check UI interaction first
     if scene.ui:isPointInPanel(x, y) then
+        scene.ui:mousepressed(x, y, button)
         if button == 1 then  -- Left click
             if scene.ui:handleClick(x, y) then
                 return
@@ -175,6 +183,7 @@ end
 function lovr.mousereleased(x, y, button)
     -- Check UI interaction first
     if scene.ui:isPointInPanel(x, y) then
+        scene.ui:mousereleased(x, y, button)
         return
     end
     
