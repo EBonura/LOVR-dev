@@ -141,13 +141,13 @@ function UI:updateHoveredButton(x, y)
     local width = lovr.system.getWindowWidth()
     local height = lovr.system.getWindowHeight()
     local panelX = width - self.panelWidth
-    local bottomY = 120  -- This is from bottom up
-    local buttonWidth = self.panelWidth / #self.fileButtons
+    local buttonWidth = self.panelWidth / #self.fileButtons  -- This was missing before
 
     self.hoveredButton = nil
     
-    -- Check if y is within button height (with correct Y orientation)
-    if y >= height - bottomY - self.buttonHeight and y <= height - bottomY then
+    -- Check if y is within button height (120 pixels from bottom)
+    -- Since y=0 is at top, we check if y is between (height-120) and (height-120+buttonHeight)
+    if y >= (height - 120) and y <= (height - 120 + self.buttonHeight) then
         local buttonIndex = math.floor((x - panelX) / buttonWidth) + 1
         if buttonIndex >= 1 and buttonIndex <= #self.fileButtons then
             self.hoveredButton = self.fileButtons[buttonIndex]
