@@ -10,15 +10,6 @@ local SaveLoad = {
     messageTimer = 0
 }
 
-function SaveLoad:initialize()
-    -- Mount the existing levels directory
-    local levelsPath = lovr.filesystem.getSource() .. "/levels"
-    lovr.filesystem.mount(levelsPath, "levels")
-    print("SaveLoad: Mounted levels directory:", levelsPath)
-    
-    self.fileDialog = FileDialog:new()
-end
-
 function SaveLoad:update(dt)
     -- Update message timer
     if self.lastError or self.lastMessage then
@@ -103,6 +94,19 @@ function SaveLoad:deserializeBlock(data)
     return block
 end
 
+function SaveLoad:initialize()
+    -- Create levels directory in save directory for writing
+    lovr.filesystem.createDirectory("levels")
+    
+    -- Mount the existing levels directory for reading
+    local levelsPath = lovr.filesystem.getSource() .. "/levels"
+    lovr.filesystem.mount(levelsPath, "levels")
+    print("SaveLoad: Mounted levels directory:", levelsPath)
+    print("Save directory:", lovr.filesystem.getSaveDirectory())
+    
+    self.fileDialog = FileDialog:new()
+end
+
 function SaveLoad:saveWorld(world, filename)
     -- Ensure the filename is in the levels directory
     if not filename:match("^levels/") then
@@ -136,8 +140,11 @@ function SaveLoad:saveWorld(world, filename)
     local json = require('json')
     local jsonString = json.encode(data)
     
-    -- Save to file
+    -- Print debug info
     print("Saving to:", filename)
+    print("Full save path:", lovr.filesystem.getSaveDirectory() .. "/" .. filename)
+    
+    -- Save to file
     local success = lovr.filesystem.write(filename, jsonString)
     if success then
         self.currentFilename = filename
