@@ -141,24 +141,41 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
     local v3UV = { 0, heightPercentage }
     local v4UV = { 1, heightPercentage }
     
-    -- Create mesh for the face (two triangles)
     local format = {
         { 'VertexPosition', 'vec3' },
         { 'VertexNormal', 'vec3' },
         { 'VertexUV', 'vec2' }
     }
     
-    -- Create vertices for two triangles with adjusted UVs
-    local vertices = {
-        -- First triangle (v1, v2, v3)
-        { v1.x, v1.y, v1.z, normal.x, normal.y, normal.z, v1UV[1], v1UV[2] },
-        { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, v2UV[1], v2UV[2] },
-        { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, v3UV[1], v3UV[2] },
-        -- Second triangle (v2, v4, v3)
-        { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, v2UV[1], v2UV[2] },
-        { v4.x, v4.y, v4.z, normal.x, normal.y, normal.z, v4UV[1], v4UV[2] },
-        { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, v3UV[1], v3UV[2] }
-    }
+    -- Enable backface culling
+    pass:setCullMode('back')
+    
+    -- Create vertices with proper winding order based on face normal
+    local vertices
+    if normal.y > 0 then  -- Top face
+        -- Counter-clockwise when viewed from above
+        vertices = {
+            -- First triangle (v1, v3, v2)
+            { v1.x, v1.y, v1.z, normal.x, normal.y, normal.z, v1UV[1], v1UV[2] },
+            { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, v3UV[1], v3UV[2] },
+            { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, v2UV[1], v2UV[2] },
+            -- Second triangle (v2, v3, v4)
+            { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, v2UV[1], v2UV[2] },
+            { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, v3UV[1], v3UV[2] },
+            { v4.x, v4.y, v4.z, normal.x, normal.y, normal.z, v4UV[1], v4UV[2] }
+        }
+    else  -- All other faces
+        vertices = {
+            -- First triangle (v1, v2, v3)
+            { v1.x, v1.y, v1.z, normal.x, normal.y, normal.z, v1UV[1], v1UV[2] },
+            { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, v2UV[1], v2UV[2] },
+            { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, v3UV[1], v3UV[2] },
+            -- Second triangle (v2, v4, v3)
+            { v2.x, v2.y, v2.z, normal.x, normal.y, normal.z, v2UV[1], v2UV[2] },
+            { v4.x, v4.y, v4.z, normal.x, normal.y, normal.z, v4UV[1], v4UV[2] },
+            { v3.x, v3.y, v3.z, normal.x, normal.y, normal.z, v3UV[1], v3UV[2] }
+        }
+    end
     
     local mesh = lovr.graphics.newMesh(format, vertices)
 
@@ -174,53 +191,20 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
     -- Draw highlight overlay if needed
     if isHighlighted then
         -- Create a slightly offset version of the vertices for highlighting
-        local offset = 0.001 -- Small offset in the direction of the normal
-        local highlightVertices = {
-            -- First triangle
-            { 
-                v1.x + normal.x * offset, 
-                v1.y + normal.y * offset, 
-                v1.z + normal.z * offset, 
-                normal.x, normal.y, normal.z, 
-                v1UV[1], v1UV[2]
-            },
-            { 
-                v2.x + normal.x * offset, 
-                v2.y + normal.y * offset, 
-                v2.z + normal.z * offset, 
-                normal.x, normal.y, normal.z, 
-                v2UV[1], v2UV[2]
-            },
-            { 
-                v3.x + normal.x * offset, 
-                v3.y + normal.y * offset, 
-                v3.z + normal.z * offset, 
-                normal.x, normal.y, normal.z, 
-                v3UV[1], v3UV[2]
-            },
-            -- Second triangle
-            { 
-                v2.x + normal.x * offset, 
-                v2.y + normal.y * offset, 
-                v2.z + normal.z * offset, 
-                normal.x, normal.y, normal.z, 
-                v2UV[1], v2UV[2]
-            },
-            { 
-                v4.x + normal.x * offset, 
-                v4.y + normal.y * offset, 
-                v4.z + normal.z * offset, 
-                normal.x, normal.y, normal.z, 
-                v4UV[1], v4UV[2]
-            },
-            { 
-                v3.x + normal.x * offset, 
-                v3.y + normal.y * offset, 
-                v3.z + normal.z * offset, 
-                normal.x, normal.y, normal.z, 
-                v3UV[1], v3UV[2]
-            }
-        }
+        local offset = 0.001
+        local highlightVertices = {}
+        
+        -- Copy vertices and apply offset
+        for i = 1, #vertices do
+            local v = vertices[i]
+            table.insert(highlightVertices, {
+                v[1] + normal.x * offset,
+                v[2] + normal.y * offset,
+                v[3] + normal.z * offset,
+                v[4], v[5], v[6],  -- normal
+                v[7], v[8]         -- UV
+            })
+        end
         
         local highlightMesh = lovr.graphics.newMesh(format, highlightVertices)
         pass:setColor(1, 1, 0, 0.1)  -- Yellow semi-transparent highlight
@@ -233,6 +217,9 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
     pass:line(v2, v4)
     pass:line(v4, v3)
     pass:line(v3, v1)
+    
+    -- Reset cull mode
+    pass:setCullMode('none')
 end
 
 function Block:draw(pass, hoveredFace, selectedFaces)
