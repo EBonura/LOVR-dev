@@ -141,13 +141,12 @@ function UI:updateHoveredButton(x, y)
     local width = lovr.system.getWindowWidth()
     local height = lovr.system.getWindowHeight()
     local panelX = width - self.panelWidth
-    local buttonWidth = self.panelWidth / #self.fileButtons  -- This was missing before
+    local buttonWidth = self.panelWidth / #self.fileButtons
 
     self.hoveredButton = nil
     
-    -- Check if y is within button height (120 pixels from bottom)
-    -- Since y=0 is at top, we check if y is between (height-120) and (height-120+buttonHeight)
-    if y >= (height - 120) and y <= (height - 120 + self.buttonHeight) then
+    -- Buttons are now 60 pixels from bottom
+    if y >= (height - 60) and y <= (height - 60 + self.buttonHeight) then
         local buttonIndex = math.floor((x - panelX) / buttonWidth) + 1
         if buttonIndex >= 1 and buttonIndex <= #self.fileButtons then
             self.hoveredButton = self.fileButtons[buttonIndex]
@@ -232,7 +231,7 @@ function UI:drawFileButtons(pass, x, y)
         pass:text(
             "Current: " .. self.saveload.currentFilename,
             x + self.padding,
-            y - self.buttonHeight - 5,
+            y + self.buttonHeight + 5,
             0,
             0.3,
             0,
@@ -242,7 +241,7 @@ function UI:drawFileButtons(pass, x, y)
         )
     end
     
-    return y - self.buttonHeight
+    return y + self.buttonHeight
 end
 
 function UI:drawFolderNavigation(pass, x, y)
@@ -377,7 +376,22 @@ function UI:draw(pass)
     -- Get window dimensions
     local width, height = lovr.system.getWindowDimensions()
     
-    -- Set up 2D orthographic projection
+    -- Draw camera info in top right of 3D view (before UI panel)
+    pass:setColor(1, 1, 1, 0.7)
+    local cameraText = self.camera:getDebugText()
+    pass:text(
+        cameraText,
+        width - self.panelWidth - 20, -- 20 pixels padding from UI panel
+        30,  -- 30 pixels from top
+        0,
+        0.3,  -- Smaller text size
+        0,
+        0, 1, 0,
+        0,
+        'right'
+    )
+    
+    -- Set up 2D orthographic projection for UI
     local projection = mat4():orthographic(0, width, height, 0, -10, 10)
     pass:setProjection(1, projection)
     
@@ -419,12 +433,12 @@ function UI:draw(pass)
     -- Draw folder navigation
     self:drawFolderNavigation(pass, panelX, height - 70)
 
-    -- Draw selected texture info
+    -- Draw selected texture info (moved lower)
     if self.selectedTexture then
         pass:text(
             "Selected: " .. self.selectedTexture.name,
             panelX + self.padding,
-            height - 90,
+            height - 100,  -- Moved from 90 to 100
             0,
             0.4,
             0,
@@ -435,7 +449,7 @@ function UI:draw(pass)
     end
     
     -- Set up texture grid
-    self.startY = height - 120
+    self.startY = height - 130  -- Adjusted to account for selected text movement
     self.texPerRow = math.floor((self.panelWidth - self.padding * 2) / self.textureSize)
     local spacing = self.textureSize + self.padding
     
@@ -481,26 +495,19 @@ function UI:draw(pass)
         end
     end
     
-    -- Draw file buttons at the bottom
-    local bottomY = 120
-    local nextY = self:drawFileButtons(pass, panelX, bottomY)
+    -- Draw file buttons at the very bottom with padding
+    pass:setColor(0.15, 0.15, 0.15, 1)  -- Darker background for button area
+    pass:plane(
+        panelX + self.panelWidth/2,
+        40,  -- Height for button area
+        0,
+        self.panelWidth,
+        80  -- Area for buttons and filename
+    )
+    local nextY = self:drawFileButtons(pass, panelX, 60)  -- 60 pixels from bottom
     
     -- Draw status message
-    nextY = self:drawStatusMessage(pass, panelX, nextY)
-    
-    -- Draw debug info below status
-    pass:setColor(1, 1, 1, 1)
-    pass:text(
-        self.camera:getDebugText(),
-        panelX + self.padding,
-        nextY - 20,
-        0,
-        0.6,
-        0,
-        0, 1, 0,
-        0,
-        'left'
-    )
+    self:drawStatusMessage(pass, panelX, nextY)
 end
 
 function UI:isPointInPanel(x, y)
