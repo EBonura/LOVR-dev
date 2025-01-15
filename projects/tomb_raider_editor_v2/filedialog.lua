@@ -101,6 +101,13 @@ function FileDialog:hide()
     self.onCancel = nil
 end
 
+function FileDialog:isPointInButton(x, y, buttonX, buttonY, width, height)
+    return x >= buttonX - width/2 and 
+           x <= buttonX + width/2 and 
+           y >= buttonY - height/2 and 
+           y <= buttonY + height/2
+end
+
 function FileDialog:handleKeyPressed(key)
     if not self.isOpen then return false end
     
@@ -148,10 +155,11 @@ function FileDialog:handleMousePressed(x, y, button)
     local windowWidth, windowHeight = lovr.system.getWindowDimensions()
     local dialogX = (windowWidth - self.width) / 2
     local dialogY = (windowHeight - self.height) / 2
+    local windowY = windowHeight - y  -- Convert to window coordinates
     
     -- Check if click is within dialog bounds
     if x < dialogX or x > dialogX + self.width or
-       y < dialogY or y > dialogY + self.height then
+       windowY < dialogY or windowY > dialogY + self.height then
         if self.onCancel then
             self.onCancel()
         end
@@ -161,14 +169,14 @@ function FileDialog:handleMousePressed(x, y, button)
     
     -- Check filename input field
     local inputY = dialogY + self.height - 2 * (self.buttonHeight + self.padding)
-    if y >= inputY - self.buttonHeight/2 and y <= inputY + self.buttonHeight/2 then
+    if windowY >= inputY - self.buttonHeight/2 and windowY <= inputY + self.buttonHeight/2 then
         self.isInputActive = true
         return true
     end
     
     -- Check file list
     local listY = dialogY + self.padding
-    local relativeY = y - listY
+    local relativeY = windowY - listY
     local itemIndex = math.floor(relativeY / self.itemHeight) + 1 + self.scrollOffset
     
     if itemIndex >= 1 and itemIndex <= #self.files then
@@ -192,19 +200,19 @@ function FileDialog:handleMousePressed(x, y, button)
     
     -- Check buttons
     local buttonY = dialogY + self.height - self.buttonHeight - self.padding
-    if y >= buttonY - self.buttonHeight/2 and y <= buttonY + self.buttonHeight/2 then
+    if windowY >= buttonY - self.buttonHeight/2 and windowY <= buttonY + self.buttonHeight/2 then
         local buttonWidth = (self.width - 3 * self.padding) / 2
-        local confirmX = dialogX + self.padding
-        local cancelX = dialogX + self.width - buttonWidth - self.padding
+        local confirmX = dialogX + self.padding + buttonWidth/2
+        local cancelX = dialogX + self.width - buttonWidth/2 - self.padding
         
-        if x >= confirmX and x <= confirmX + buttonWidth then
+        if x >= confirmX - buttonWidth/2 and x <= confirmX + buttonWidth/2 then
             -- Confirm button
             if self.onComplete then
                 self.onComplete(self.currentPath .. "/" .. self.filename)
             end
             self:hide()
             return true
-        elseif x >= cancelX and x <= cancelX + buttonWidth then
+        elseif x >= cancelX - buttonWidth/2 and x <= cancelX + buttonWidth/2 then
             -- Cancel button
             if self.onCancel then
                 self.onCancel()
@@ -223,18 +231,19 @@ function FileDialog:handleMouseMoved(x, y)
     local windowWidth, windowHeight = lovr.system.getWindowDimensions()
     local dialogX = (windowWidth - self.width) / 2
     local dialogY = (windowHeight - self.height) / 2
+    local windowY = windowHeight - y  -- Convert to window coordinates
     
     -- Check buttons
     local buttonY = dialogY + self.height - self.buttonHeight - self.padding
-    if y >= buttonY - self.buttonHeight/2 and y <= buttonY + self.buttonHeight/2 then
+    if windowY >= buttonY - self.buttonHeight/2 and windowY <= buttonY + self.buttonHeight/2 then
         local buttonWidth = (self.width - 3 * self.padding) / 2
-        local confirmX = dialogX + self.padding
-        local cancelX = dialogX + self.width - buttonWidth - self.padding
+        local confirmX = dialogX + self.padding + buttonWidth/2
+        local cancelX = dialogX + self.width - buttonWidth/2 - self.padding
         
-        if x >= confirmX and x <= confirmX + buttonWidth then
+        if x >= confirmX - buttonWidth/2 and x <= confirmX + buttonWidth/2 then
             self.hoveredButton = "confirm"
             return true
-        elseif x >= cancelX and x <= cancelX + buttonWidth then
+        elseif x >= cancelX - buttonWidth/2 and x <= cancelX + buttonWidth/2 then
             self.hoveredButton = "cancel"
             return true
         end
@@ -269,7 +278,7 @@ function FileDialog:draw(pass)
     pass:setColor(unpack(self.backgroundColor))
     pass:plane(
         dialogX + self.width/2,
-        dialogY + self.height/2,
+        windowHeight - (dialogY + self.height/2),
         0,
         self.width,
         self.height
@@ -281,9 +290,13 @@ function FileDialog:draw(pass)
     pass:text(
         titleText,
         dialogX + self.padding,
-        dialogY + self.padding,
+        windowHeight - (dialogY + self.padding),
         0,
-        0.5
+        0.6,
+        0,
+        0, 1, 0,
+        0,
+        'left'
     )
     
     -- Draw current path
@@ -291,9 +304,13 @@ function FileDialog:draw(pass)
     pass:text(
         self.currentPath,
         dialogX + self.padding,
-        dialogY + 2 * self.padding + 20,
+        windowHeight - (dialogY + 2 * self.padding + 20),
         0,
-        0.3
+        0.4,
+        0,
+        0, 1, 0,
+        0,
+        'left'
     )
     
     -- Draw file list
@@ -307,7 +324,7 @@ function FileDialog:draw(pass)
                 pass:setColor(0.3, 0.5, 0.7, 0.5)
                 pass:plane(
                     dialogX + self.width/2,
-                    listY + (i-1) * self.itemHeight + self.itemHeight/2,
+                    windowHeight - (listY + (i-1) * self.itemHeight + self.itemHeight/2),
                     0,
                     self.width - 2 * self.padding,
                     self.itemHeight
@@ -320,9 +337,13 @@ function FileDialog:draw(pass)
             pass:text(
                 prefix .. file.name,
                 dialogX + 2 * self.padding,
-                listY + (i-1) * self.itemHeight + self.itemHeight/2,
+                windowHeight - (listY + (i-1) * self.itemHeight + self.itemHeight/2),
                 0,
-                0.3
+                0.4,
+                0,
+                0, 1, 0,
+                0,
+                'left'
             )
         end
     end
@@ -332,7 +353,7 @@ function FileDialog:draw(pass)
     pass:setColor(0.15, 0.15, 0.15, 1)
     pass:plane(
         dialogX + self.width/2,
-        inputY,
+        windowHeight - inputY,
         0,
         self.width - 2 * self.padding,
         self.buttonHeight
@@ -346,7 +367,7 @@ function FileDialog:draw(pass)
     pass:text(
         displayText,
         dialogX + 2 * self.padding,
-        inputY,
+        windowHeight - inputY,
         0,
         0.4,
         0,
@@ -364,7 +385,7 @@ function FileDialog:draw(pass)
     pass:setColor(unpack(confirmColor))
     pass:plane(
         dialogX + self.padding + buttonWidth/2,
-        buttonY,
+        windowHeight - buttonY,
         0,
         buttonWidth,
         self.buttonHeight
@@ -373,7 +394,7 @@ function FileDialog:draw(pass)
     pass:text(
         self.mode == "save" and "Save" or "Open",
         dialogX + self.padding + buttonWidth/2,
-        buttonY,
+        windowHeight - buttonY,
         0,
         0.4
     )
@@ -382,8 +403,8 @@ function FileDialog:draw(pass)
     local cancelColor = self.hoveredButton == "cancel" and self.buttonColors.hover or self.buttonColors.normal
     pass:setColor(unpack(cancelColor))
     pass:plane(
-        dialogX + self.width - buttonWidth - self.padding + buttonWidth/2,
-        buttonY,
+        dialogX + self.width - buttonWidth/2 - self.padding,
+        windowHeight - buttonY,
         0,
         buttonWidth,
         self.buttonHeight
@@ -391,8 +412,8 @@ function FileDialog:draw(pass)
     pass:setColor(1, 1, 1, 1)
     pass:text(
         "Cancel",
-        dialogX + self.width - buttonWidth - self.padding + buttonWidth/2,
-        buttonY,
+        dialogX + self.width - buttonWidth/2 - self.padding,
+        windowHeight - buttonY,
         0,
         0.4
     )

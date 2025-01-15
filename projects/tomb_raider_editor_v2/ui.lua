@@ -177,12 +177,11 @@ function UI:mousereleased(x, y, button)
             end
         elseif self.activeButton.action == "saveas" then
             if self.saveload then
-                local timestamp = os.date("%Y%m%d_%H%M%S")
-                self.saveload:saveWorld(self.world, "world_" .. timestamp .. ".json")
+                self.saveload:promptSave(self.world)
             end
         elseif self.activeButton.action == "load" then
             if self.saveload then
-                self.saveload:loadWorld(self.world, "world.json")
+                self.saveload:promptLoad(self.world)
             end
         end
     end
