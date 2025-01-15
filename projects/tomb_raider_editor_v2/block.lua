@@ -156,10 +156,58 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
     
     -- Draw highlight overlay if needed
     if isHighlighted then
+        -- Create a slightly offset version of the vertices for highlighting
+        local offset = 0.001 -- Small offset in the direction of the normal
+        local highlightVertices = {
+            -- First triangle
+            { 
+                v1.x + normal.x * offset, 
+                v1.y + normal.y * offset, 
+                v1.z + normal.z * offset, 
+                normal.x, normal.y, normal.z, 
+                0, 0 
+            },
+            { 
+                v2.x + normal.x * offset, 
+                v2.y + normal.y * offset, 
+                v2.z + normal.z * offset, 
+                normal.x, normal.y, normal.z, 
+                1, 0 
+            },
+            { 
+                v3.x + normal.x * offset, 
+                v3.y + normal.y * offset, 
+                v3.z + normal.z * offset, 
+                normal.x, normal.y, normal.z, 
+                0, 1 
+            },
+            -- Second triangle
+            { 
+                v2.x + normal.x * offset, 
+                v2.y + normal.y * offset, 
+                v2.z + normal.z * offset, 
+                normal.x, normal.y, normal.z, 
+                1, 0 
+            },
+            { 
+                v4.x + normal.x * offset, 
+                v4.y + normal.y * offset, 
+                v4.z + normal.z * offset, 
+                normal.x, normal.y, normal.z, 
+                1, 1 
+            },
+            { 
+                v3.x + normal.x * offset, 
+                v3.y + normal.y * offset, 
+                v3.z + normal.z * offset, 
+                normal.x, normal.y, normal.z, 
+                0, 1 
+            }
+        }
+        
+        local highlightMesh = lovr.graphics.newMesh(format, highlightVertices)
         pass:setColor(1, 1, 0, 0.1)  -- Yellow semi-transparent highlight
-        pass:setDepthTest('gequal')  -- Draw over existing geometry
-        pass:draw(mesh)
-        pass:setDepthTest()  -- Reset depth test
+        pass:draw(highlightMesh)
     end
     
     -- Draw wireframe outline
