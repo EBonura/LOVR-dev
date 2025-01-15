@@ -11,8 +11,8 @@ local Block = {
     depth = 1,
     height = 1,
     
-    -- Height levels available (1 = full height, going down)
-    heightLevels = {1, 0.66, 0.33, 0},
+    -- Height levels available (1 = full height, going down in quarters)
+    heightLevels = {1, 0.75, 0.5, 0.25, 0},  -- Fixed to have 4 divisions
     
     -- Face vertex mappings (which vertices belong to each face)
     faceVertices = {
