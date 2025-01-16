@@ -290,31 +290,88 @@ function World:handleClick(x, y, z, isShiftHeld)
                 self.selectedBlocks = {block}
             end
             
-            -- Update UI face states based on selected block
+            -- Update UI face states and textures based on selected block
             if self.ui then
                 -- Reset face states
                 for face in pairs(self.ui.enabledFaces) do
                     self.ui.enabledFaces[face] = false
                 end
                 
-                -- Enable faces that have textures
-                for face, texture in pairs(block.faceTextures) do
+                -- Find the first textured face to use as default selected texture
+                local defaultTexture = nil
+                local defaultTextureInfo = nil
+                local faces = {"front", "back", "left", "right", "top", "bottom"}
+                
+                -- Enable faces that have textures and find default texture
+                for _, face in ipairs(faces) do
+                    local texture = block.faceTextures[face]
+                    local textureInfo = block.faceTextureInfos[face]
                     if texture then
                         self.ui.enabledFaces[face] = true
+                        -- Set as default if we haven't found one yet
+                        if not defaultTexture then
+                            defaultTexture = texture
+                            defaultTextureInfo = textureInfo
+                        end
                     end
                 end
                 
-                -- Get texture from front face as default
-                local frontTexture = block.faceTextures["front"]
-                local frontTextureInfo = block.faceTextureInfos["front"]
-                if frontTexture and frontTextureInfo then
-                    self.ui:setSelectedTextureByImage(frontTexture, frontTextureInfo)
+                -- Update selected texture if we found one
+                if defaultTexture and defaultTextureInfo then
+                    self.ui:setSelectedTextureByImage(defaultTexture, defaultTextureInfo)
                 end
             end
         elseif not isShiftHeld then
             -- Clear selection only if shift is not held
             self.selectedBlock = nil
             self.selectedBlocks = {}
+        end
+    elseif self.currentMode == self.MODE_FACE_SELECT and self.hoveredFace then
+        -- In face select mode, handle face selection
+        if isShiftHeld then
+            -- Add to or remove from multi-selection
+            local isAlreadySelected = false
+            for i, selectedFace in ipairs(self.selectedFaces) do
+                if selectedFace.block == self.hoveredFace.block and 
+                   selectedFace.face == self.hoveredFace.face then
+                    table.remove(self.selectedFaces, i)
+                    isAlreadySelected = true
+                    break
+                end
+            end
+            if not isAlreadySelected then
+                table.insert(self.selectedFaces, {
+                    block = self.hoveredFace.block,
+                    face = self.hoveredFace.face
+                })
+            end
+            -- Update primary selection
+            self.selectedFace = {
+                block = self.hoveredFace.block,
+                face = self.hoveredFace.face
+            }
+        else
+            -- Single selection
+            self.selectedFace = {
+                block = self.hoveredFace.block,
+                face = self.hoveredFace.face
+            }
+            self.selectedFaces = {{
+                block = self.hoveredFace.block,
+                face = self.hoveredFace.face
+            }}
+        end
+        
+        -- Sync UI texture selection with face texture
+        if self.ui then
+            local block = self.selectedFace.block
+            local face = self.selectedFace.face
+            local faceTexture = block.faceTextures[face]
+            local faceTextureInfo = block.faceTextureInfos[face]
+            
+            if faceTexture and faceTextureInfo then
+                self.ui:setSelectedTextureByImage(faceTexture, faceTextureInfo)
+            end
         end
     end
 end
