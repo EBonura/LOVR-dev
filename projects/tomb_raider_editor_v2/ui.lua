@@ -62,9 +62,9 @@ local UI = {
     -- Keyboard shortcuts help
     -- Add to UI table definition
     shortcutHints = {
-        PLACE = "[TAB] Switch Mode | [Click] Place Block | [Double Click] Delete Block | [Mouse Wheel] Adjust Grid Height | [Right Click + Drag] Rotate Camera",
-        SELECT = "[TAB] Switch Mode | [Click] Select Block | [Shift+Click] Multi-select | [Delete] Remove Selected | [Mouse Wheel] Adjust Grid Height | [Right Click + Drag] Rotate Camera",
-        FACE_SELECT = "[TAB] Switch Mode | [Click] Select Face | [Shift+Click] Multi-select | [↑/↓] Adjust Face Height | [Mouse Wheel] Adjust Grid Height | [Right Click + Drag] Rotate Camera"
+        PLACE = "[TAB] Switch Mode | [Click] Place Block | [Double Click] Delete Block | [PageUp/Down] Adjust Grid Height | [Right Click + Drag] Rotate Camera",
+        SELECT = "[TAB] Switch Mode | [Click] Select Block | [Shift+Click] Multi-select | [Arrows] Move Block | [Shift+↑/↓] Move Up/Down | [R] Rotate | [Ctrl+D] Duplicate | [Delete] Remove | [PageUp/Down] Adjust Grid Height | [Right Click + Drag] Rotate Camera",
+        FACE_SELECT = "[TAB] Switch Mode | [Click] Select Face | [Shift+Click] Multi-select | [↑/↓] Adjust Face Height | [PageUp/Down] Adjust Grid Height | [Right Click + Drag] Rotate Camera"
     }
 }
 
