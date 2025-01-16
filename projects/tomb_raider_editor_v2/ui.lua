@@ -94,6 +94,44 @@ local UI = {
     hoveredFace = nil,
 }
 
+function UI:updateHoveredButton(x, y)
+    local width = lovr.system.getWindowWidth()
+    local height = lovr.system.getWindowHeight()
+    local panelX = width - self.panelWidth
+    local buttonWidth = self.panelWidth / #self.fileButtons
+
+    self.hoveredButton = nil
+    
+    -- Check file buttons (60 pixels from bottom)
+    if y >= (height - 60) and y <= (height - 60 + self.buttonHeight) then
+        local buttonIndex = math.floor((x - panelX) / buttonWidth) + 1
+        if buttonIndex >= 1 and buttonIndex <= #self.fileButtons then
+            self.hoveredButton = self.fileButtons[buttonIndex]
+        end
+    end
+
+    -- Reset hover state first
+    self.hoveredFace = nil
+
+    -- Check cube net face hover
+    if self.world and (self.world.currentMode == self.world.MODE_PLACE or 
+                      (self.world.currentMode == self.world.MODE_SELECT and #self.world.selectedBlocks > 0)) then
+        local centerX = width - self.panelWidth/2
+        local centerY = height - 150  -- Fixed position from bottom
+        
+        for face, pos in pairs(self.facePositions) do
+            local faceX = centerX + pos[1] * (self.faceLayoutSize + self.faceLayoutPadding)
+            local faceY = centerY - pos[2] * (self.faceLayoutSize + self.faceLayoutPadding)
+            
+            if math.abs(x - faceX) <= self.faceLayoutSize/2 and 
+               math.abs(y - faceY) <= self.faceLayoutSize/2 then
+                self.hoveredFace = face
+                break
+            end
+        end
+    end
+end
+
 function UI:drawCubeNet(pass, x, y)
     -- Calculate base position for the net (60 pixels from bottom, like the file buttons)
     local centerX = x + self.panelWidth/2
@@ -108,6 +146,11 @@ function UI:drawCubeNet(pass, x, y)
         left = "Left",
         right = "Right"
     }
+
+    -- Check if we should show cube net interactively
+    local isInteractive = self.world and 
+                         (self.world.currentMode == self.world.MODE_PLACE or 
+                          (self.world.currentMode == self.world.MODE_SELECT and #self.world.selectedBlocks > 0))
     
     -- Draw each face
     for face, pos in pairs(self.facePositions) do
@@ -115,7 +158,7 @@ function UI:drawCubeNet(pass, x, y)
         local faceY = centerY + pos[2] * (self.faceLayoutSize + self.faceLayoutPadding)
         
         -- Draw face background
-        if self.hoveredFace == face then
+        if isInteractive and self.hoveredFace == face then
             pass:setColor(0.4, 0.4, 0.4, 1)
         else
             pass:setColor(0.3, 0.3, 0.3, 1)
@@ -173,39 +216,118 @@ function UI:drawCubeNet(pass, x, y)
     end
 end
 
-function UI:updateHoveredButton(x, y)
+function UI:handleClick(x, y)
+    if not self:isPointInPanel(x, y) then
+        return false
+    end
+
+    -- Get window and panel coordinates
     local width = lovr.system.getWindowWidth()
     local height = lovr.system.getWindowHeight()
     local panelX = width - self.panelWidth
-    local buttonWidth = self.panelWidth / #self.fileButtons
 
-    self.hoveredButton = nil
-    
-    -- Check file buttons (60 pixels from bottom)
-    if y >= (height - 60) and y <= (height - 60 + self.buttonHeight) then
-        local buttonIndex = math.floor((x - panelX) / buttonWidth) + 1
-        if buttonIndex >= 1 and buttonIndex <= #self.fileButtons then
-            self.hoveredButton = self.fileButtons[buttonIndex]
+    -- Check folder navigation buttons
+    local folderNavY = height - 70
+    if math.abs(height - y - folderNavY) <= self.buttonHeight/2 then
+        if x >= panelX and x < panelX + self.buttonWidth then
+            self:previousFolder()
+            return true
         end
+        
+        local nextButtonX = panelX + self.panelWidth - self.buttonWidth
+        if x >= nextButtonX and x < panelX + self.panelWidth then
+            self:nextFolder()
+            return true
+        end
+        return true
     end
 
-    -- Check cube net face hover using same coordinate system as buttons
-    if self.world and self.world.currentMode == self.world.MODE_PLACE then
-        local centerX = panelX + self.panelWidth/2
-        local centerY = height - 150  -- Fixed position from bottom, matching drawCubeNet
-
-        self.hoveredFace = nil
-        for face, pos in pairs(self.facePositions) do
-            local faceX = centerX + pos[1] * (self.faceLayoutSize + self.faceLayoutPadding)
-            local faceY = centerY - pos[2] * (self.faceLayoutSize + self.faceLayoutPadding)
+    -- Check if we can interact with cube net
+    local canInteractWithNet = self.world and 
+                              (self.world.currentMode == self.world.MODE_PLACE or 
+                               (self.world.currentMode == self.world.MODE_SELECT and 
+                                #self.world.selectedBlocks > 0))
+    
+    -- Handle cube net face clicks if interaction is allowed
+    if canInteractWithNet and self.hoveredFace then
+        -- Save world state before modification in SELECT mode
+        if self.world.currentMode == self.world.MODE_SELECT then
+            if self.world.history then
+                self.world.history:pushState(self.world)
+            end
             
-            if math.abs(x - faceX) <= self.faceLayoutSize/2 and 
-               math.abs(y - faceY) <= self.faceLayoutSize/2 then
-                self.hoveredFace = face
-                break
+            -- Apply to all selected blocks
+            for _, block in ipairs(self.world.selectedBlocks) do
+                -- Toggle the face state if this is the first block
+                if block == self.world.selectedBlocks[1] then
+                    self.enabledFaces[self.hoveredFace] = not self.enabledFaces[self.hoveredFace]
+                end
+                
+                -- Apply or remove texture based on the enabled state
+                if self.enabledFaces[self.hoveredFace] and self.selectedTexture then
+                    block:setFaceTexture(
+                        self.hoveredFace,
+                        self.selectedTexture.texture,
+                        {
+                            folder = self.selectedTexture.folder,
+                            number = self.selectedTexture.number
+                        }
+                    )
+                else
+                    block:setFaceTexture(self.hoveredFace, nil, nil)
+                end
+            end
+        else
+            -- In PLACE mode, just toggle the face state
+            self.enabledFaces[self.hoveredFace] = not self.enabledFaces[self.hoveredFace]
+        end
+        return true
+    end
+
+    -- Check texture grid clicks
+    local relativeX = x - panelX - self.padding
+    local windowY = lovr.system.getWindowHeight() - y
+    local verticalOffset = self.startY - windowY
+    local spacing = self.textureSize + self.padding
+    local row = math.floor(verticalOffset / spacing)
+    local col = math.floor(relativeX / spacing)
+    local index = row * self.texPerRow + col + 1
+
+    if index >= 1 and index <= #self.textures and col < self.texPerRow and row >= 0 then
+        local selectedTex = self.textures[index]
+        self.selectedTexture = selectedTex
+        
+        -- Create texture info
+        local textureInfo = {
+            folder = selectedTex.folder,
+            number = selectedTex.number
+        }
+        
+        -- Update textures based on mode
+        if self.world then
+            if self.world.currentMode == self.world.MODE_SELECT then
+                -- Update all selected blocks
+                for _, block in ipairs(self.world.selectedBlocks) do
+                    block:setTexture(selectedTex.texture, textureInfo)
+                end
+            elseif self.world.currentMode == self.world.MODE_FACE_SELECT then
+                -- Update all selected faces
+                for _, faceInfo in ipairs(self.world.selectedFaces) do
+                    local block = faceInfo.block
+                    local face = faceInfo.face
+                    block:setFaceTexture(
+                        face,
+                        selectedTex.texture,
+                        textureInfo
+                    )
+                end
             end
         end
+        
+        return true
     end
+
+    return false
 end
 
 function UI:drawShortcutHint(pass)
@@ -674,94 +796,7 @@ function UI:isPointInPanel(x, y)
     return x >= (width - self.panelWidth)
 end
 
-function UI:handleClick(x, y)
-    if not self:isPointInPanel(x, y) then
-        return false
-    end
 
-    -- Get window and panel coordinates
-    local width = lovr.system.getWindowWidth()
-    local height = lovr.system.getWindowHeight()
-    local panelX = width - self.panelWidth
-
-    -- Check folder navigation buttons
-    local folderNavY = height - 70
-    if math.abs(height - y - folderNavY) <= self.buttonHeight/2 then
-        if x >= panelX and x < panelX + self.buttonWidth then
-            self:previousFolder()
-            return true
-        end
-        
-        local nextButtonX = panelX + self.panelWidth - self.buttonWidth
-        if x >= nextButtonX and x < panelX + self.panelWidth then
-            self:nextFolder()
-            return true
-        end
-        return true
-    end
-
-    -- Check texture grid clicks
-    local relativeX = x - panelX - self.padding
-    local windowY = lovr.system.getWindowHeight() - y
-    local verticalOffset = self.startY - windowY
-    local spacing = self.textureSize + self.padding
-    local row = math.floor(verticalOffset / spacing)
-    local col = math.floor(relativeX / spacing)
-    local index = row * self.texPerRow + col + 1
-
-    if index >= 1 and index <= #self.textures and col < self.texPerRow and row >= 0 then
-        local selectedTex = self.textures[index]
-        self.selectedTexture = selectedTex
-        
-        -- Create texture info
-        local textureInfo = {
-            folder = selectedTex.folder,
-            number = selectedTex.number
-        }
-        
-        -- Update textures based on mode
-        if self.world then
-            if self.world.currentMode == self.world.MODE_SELECT then
-                -- Update all selected blocks
-                for _, block in ipairs(self.world.selectedBlocks) do
-                    block:setTexture(selectedTex.texture, textureInfo)
-                end
-            elseif self.world.currentMode == self.world.MODE_FACE_SELECT then
-                -- Update all selected faces
-                for _, faceInfo in ipairs(self.world.selectedFaces) do
-                    local block = faceInfo.block
-                    local face = faceInfo.face
-                    block:setFaceTexture(
-                        face,
-                        selectedTex.texture,
-                        textureInfo
-                    )
-                end
-            end
-        end
-        
-        return true
-    end
-    
-    if self.world and self.world.currentMode == self.world.MODE_PLACE then
-        -- Check if we clicked a face in the cube net
-        if self.hoveredFace then
-            self.enabledFaces[self.hoveredFace] = not self.enabledFaces[self.hoveredFace]
-            return true
-        end
-    end
-
-    return false
-end
-
-function UI:getFolderIndex(folderName)
-    for i, folder in ipairs(self.availableFolders) do
-        if folder == folderName then
-            return i
-        end
-    end
-    return 1  -- Return first folder if not found
-end
 
 function UI:setSelectedTextureByImage(texture, textureInfo)
     if not texture or not textureInfo then return false end
