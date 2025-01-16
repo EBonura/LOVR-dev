@@ -62,9 +62,9 @@ local UI = {
     -- Keyboard shortcuts help
     -- Add to UI table definition
     shortcutHints = {
-        PLACE = "[TAB] Switch Mode | [Double Click] Delete Block",
-        SELECT = "[TAB] Switch Mode | [Shift+Click] Multi-select | [Delete] Remove Selected",
-        FACE_SELECT = "[TAB] Switch Mode | [Shift+Click] Multi-select | [↑/↓] Adjust Height"
+        PLACE = "[TAB] Switch Mode | [Click] Place Block | [Double Click] Delete Block | [Mouse Wheel] Adjust Grid Height | [Right Click + Drag] Rotate Camera",
+        SELECT = "[TAB] Switch Mode | [Click] Select Block | [Shift+Click] Multi-select | [Delete] Remove Selected | [Mouse Wheel] Adjust Grid Height | [Right Click + Drag] Rotate Camera",
+        FACE_SELECT = "[TAB] Switch Mode | [Click] Select Face | [Shift+Click] Multi-select | [↑/↓] Adjust Face Height | [Mouse Wheel] Adjust Grid Height | [Right Click + Drag] Rotate Camera"
     }
 }
 
@@ -74,24 +74,33 @@ function UI:drawShortcutHint(pass)
     local width = lovr.system.getWindowWidth()
     local height = lovr.system.getWindowHeight()
     
+    -- Calculate start position - mode indicator width plus a small gap
+    local startX = self.modeIndicatorWidth + 20  -- 20px gap after mode indicator
+
     -- Draw semi-transparent background for the hint bar
     pass:setColor(0, 0, 0, 0.7)
     pass:plane(
-        width/2,
+        startX + (width - startX)/2,  -- Center the background in remaining space
         20, -- Near bottom of screen
         0,
-        width,
+        width - startX,  -- Width is now the remaining space
         40
     )
-    
+
     -- Draw the shortcuts text
     pass:setColor(1, 1, 1, 0.9)
     pass:text(
         self.shortcutHints[self.world.currentMode] or "",
-        width/2,
+        startX + 20,  -- Add padding from start of background
         20,  -- Match the background position
         0,
-        0.4
+        0.3,
+        0,    -- rotation
+        0,    -- scale x
+        1,    -- scale y
+        0,    -- scale z
+        width - startX - 40,  -- max width (remaining width minus padding)
+        'left'
     )
 end
 
