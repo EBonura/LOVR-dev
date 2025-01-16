@@ -247,7 +247,7 @@ function lovr.draw(pass)
     
     -- Only process mouse interaction if not in UI or file dialog
     local mx, my = lovr.system.getMousePosition()
-    if not scene.ui:isPointInPanel(mx, y) and not scene.saveload.fileDialog.isOpen then
+    if not scene.ui:isPointInPanel(mx, my) and not scene.saveload.fileDialog.isOpen then
         -- Calculate ray intersection
         local intersection, t, rayStart, rayDir = calculateRayIntersection()
         
@@ -284,13 +284,9 @@ function lovr.draw(pass)
             )
         end
         
-        -- Draw world elements
+        -- Draw world elements and cursor intersection for ALL modes
         scene.world:drawGrid(pass)
-        
-        -- Draw cursor intersection only in PLACE mode
-        if scene.world.currentMode == scene.world.MODE_PLACE then
-            scene.world:drawCursorIntersection(pass, t, intersection)
-        end
+        scene.world:drawCursorIntersection(pass, t, intersection)
     else
         -- Still draw grid when mouse is in UI
         scene.world:drawGrid(pass)
