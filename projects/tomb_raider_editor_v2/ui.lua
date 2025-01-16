@@ -74,32 +74,33 @@ function UI:drawShortcutHint(pass)
     local width = lovr.system.getWindowWidth()
     local height = lovr.system.getWindowHeight()
     
-    -- Calculate start position - mode indicator width plus a small gap
-    local startX = self.modeIndicatorWidth + 20  -- 20px gap after mode indicator
+    -- Calculate start and end positions
+    local startX = self.modeIndicatorWidth + 20
+    local endX = width - self.panelWidth
 
     -- Draw semi-transparent background for the hint bar
     pass:setColor(0, 0, 0, 0.7)
     pass:plane(
-        startX + (width - startX)/2,  -- Center the background in remaining space
-        20, -- Near bottom of screen
+        startX + (endX - startX)/2,  -- Center in available space
+        20,
         0,
-        width - startX,  -- Width is now the remaining space
+        endX - startX,
         40
     )
 
-    -- Draw the shortcuts text
+    -- Draw the shortcuts text with full width
     pass:setColor(1, 1, 1, 0.9)
     pass:text(
         self.shortcutHints[self.world.currentMode] or "",
-        startX + 20,  -- Add padding from start of background
-        20,  -- Match the background position
+        startX + 20,
+        20,
         0,
         0.3,
-        0,    -- rotation
-        0,    -- scale x
-        1,    -- scale y
-        0,    -- scale z
-        width - startX - 40,  -- max width (remaining width minus padding)
+        0,
+        0,
+        1,
+        0,
+        endX + 500,
         'left'
     )
 end
