@@ -57,8 +57,43 @@ local UI = {
         normal = {1, 1, 1, 1},
         hover = {1, 1, 1, 1},
         active = {0.8, 0.8, 0.8, 1},
+    },
+
+    -- Keyboard shortcuts help
+    -- Add to UI table definition
+    shortcutHints = {
+        PLACE = "[TAB] Switch Mode | [Double Click] Delete Block",
+        SELECT = "[TAB] Switch Mode | [Shift+Click] Multi-select | [Delete] Remove Selected",
+        FACE_SELECT = "[TAB] Switch Mode | [Shift+Click] Multi-select | [↑/↓] Adjust Height"
     }
 }
+
+function UI:drawShortcutHint(pass)
+    if not self.world then return end
+    
+    local width = lovr.system.getWindowWidth()
+    local height = lovr.system.getWindowHeight()
+    
+    -- Draw semi-transparent background for the hint bar
+    pass:setColor(0, 0, 0, 0.7)
+    pass:plane(
+        width/2,
+        20, -- Near bottom of screen
+        0,
+        width,
+        40
+    )
+    
+    -- Draw the shortcuts text
+    pass:setColor(1, 1, 1, 0.9)
+    pass:text(
+        self.shortcutHints[self.world.currentMode] or "",
+        width/2,
+        20,  -- Match the background position
+        0,
+        0.4
+    )
+end
 
 function UI:new(camera)
     local ui = setmetatable({}, { __index = UI })
@@ -317,20 +352,6 @@ function UI:drawModeIndicator(pass)
         0,
         'left'
     )
-    
-    -- Draw shortcut hint
-    pass:setColor(1, 1, 1, 0.7)
-    pass:text(
-        "[TAB] to switch",
-        self.modeIndicatorWidth - 10,
-        self.modeIndicatorHeight/2,
-        0,
-        0.3,
-        0,
-        0, 1, 0,
-        0,
-        'right'
-    )
 end
 
 function UI:drawStatusMessage(pass, x, y)
@@ -506,6 +527,9 @@ function UI:draw(pass)
         0,
         'left'
     )
+
+    -- Draw shortcut hint at the bottom
+    self:drawShortcutHint(pass)
 end
 
 function UI:isPointInPanel(x, y)
