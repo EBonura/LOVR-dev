@@ -367,19 +367,36 @@ function World:placeBlock(x, y, z)
     -- Save state before modification
     self.history:pushState(self)
     
-    -- Get current texture from UI
+    -- Get current texture and UI settings
     local texture = nil
     local textureInfo = nil
-    if self.ui and self.ui.selectedTexture then
-        texture = self.ui.selectedTexture.texture
-        textureInfo = {
-            folder = self.ui.selectedTexture.folder,
-            number = self.ui.selectedTexture.number
-        }
+    local enabledFaces = nil
+    
+    if self.ui then
+        if self.ui.selectedTexture then
+            texture = self.ui.selectedTexture.texture
+            textureInfo = {
+                folder = self.ui.selectedTexture.folder,
+                number = self.ui.selectedTexture.number
+            }
+        end
+        enabledFaces = self.ui.enabledFaces
     end
     
-    -- Create and add new block
-    local block = Block:new(x, y, z, texture, textureInfo)
+    -- Create the block without textures initially
+    local block = Block:new(x, y, z)
+    
+    -- Apply textures only to enabled faces
+    if texture and textureInfo then
+        for face, enabled in pairs(enabledFaces or {}) do
+            if enabled then
+                block:setFaceTexture(face, texture, textureInfo)
+            else
+                block:setFaceTexture(face, nil, nil)  -- Explicitly disable face
+            end
+        end
+    end
+    
     table.insert(self.blocks, block)
     return true
 end

@@ -65,8 +65,117 @@ local UI = {
         PLACE = "[TAB] Switch Mode | [Click] Place Block | [Double Click] Delete Block | [Ctrl+Z] Undo | [Ctrl+Shift+Z] Redo | [PageUp/Down] Adjust Grid Height | [Right Click + Drag] Rotate Camera",
         SELECT = "[TAB] Switch Mode | [Click] Select Block | [Shift+Click] Multi-select | [Arrows] Move Block | [Shift+↑/↓] Move Up/Down | [R] Rotate | [Ctrl+Z] Undo | [Ctrl+Shift+Z] Redo | [Ctrl+D] Duplicate | [Delete] Remove | [PageUp/Down] Adjust Grid Height | [Right Click + Drag] Rotate Camera",
         FACE_SELECT = "[TAB] Switch Mode | [Click] Select Face | [Shift+Click] Multi-select | [↑/↓] Adjust Face Height | [Ctrl+Z] Undo | [Ctrl+Shift+Z] Redo | [PageUp/Down] Adjust Grid Height | [Right Click + Drag] Rotate Camera"
-    }
+    },
+    
+    -- Face layout configuration 
+    enabledFaces = {
+        top = true,
+        front = true,
+        right = true,
+        left = true,
+        back = true,
+        bottom = true
+    },
+    
+    faceLayoutSize = 40,  -- Size of each face in the net
+    faceLayoutPadding = 5,  -- Padding between faces
+    
+    -- Face positions in the net (relative to center)
+    facePositions = {
+        top =    {  0, -1 },
+        left =   { -1,  0 },
+        front =  {  0,  0 },
+        right =  {  1,  0 },
+        back =   {  0,  1 },
+        bottom = {  0,  2 }
+    },
+    
+    -- For hover detection
+    hoveredFace = nil,
 }
+
+function UI:drawCubeNet(pass, x, y)
+    -- Title for the cube net
+    pass:setColor(1, 1, 1, 1)
+    pass:text(
+        "Face Selection",
+        x + self.padding,
+        y,
+        0,
+        0.5,
+        0,
+        0, 1, 0,
+        0,
+        'left'
+    )
+    
+    -- Calculate center position for the net
+    local centerX = x + self.panelWidth/2
+    local centerY = y + self.faceLayoutSize * 2
+    
+    -- Draw each face
+    for face, pos in pairs(self.facePositions) do
+        local faceX = centerX + pos[1] * (self.faceLayoutSize + self.faceLayoutPadding)
+        local faceY = centerY + pos[2] * (self.faceLayoutSize + self.faceLayoutPadding)
+        
+        -- Draw face background
+        if self.hoveredFace == face then
+            pass:setColor(0.4, 0.4, 0.4, 1)
+        else
+            pass:setColor(0.3, 0.3, 0.3, 1)
+        end
+        pass:plane(
+            faceX,
+            faceY,
+            0,
+            self.faceLayoutSize,
+            self.faceLayoutSize
+        )
+        
+        -- Draw enabled/disabled state
+        if self.enabledFaces[face] then
+            -- Draw preview of current texture if selected
+            if self.selectedTexture then
+                pass:setColor(1, 1, 1, 1)
+                pass:setMaterial(self.selectedTexture.texture)
+                pass:plane(
+                    faceX,
+                    faceY,
+                    0,
+                    self.faceLayoutSize - 4,
+                    self.faceLayoutSize - 4
+                )
+                pass:setMaterial()
+            end
+        else
+            -- Draw X for disabled faces
+            pass:setColor(1, 0, 0, 0.5)
+            local size = self.faceLayoutSize/2 - 4
+            pass:line(
+                faceX - size, faceY - size, 0,
+                faceX + size, faceY + size, 0
+            )
+            pass:line(
+                faceX - size, faceY + size, 0,
+                faceX + size, faceY - size, 0
+            )
+        end
+        
+        -- Draw face name
+        pass:setColor(1, 1, 1, 1)
+        pass:text(
+            face:sub(1,1):upper(),
+            faceX,
+            faceY,
+            0,
+            0.4
+        )
+    end
+    
+    return y + self.faceLayoutSize * 4  -- Return next Y position
+end
+
+
 
 function UI:drawShortcutHint(pass)
     if not self.world then return end
@@ -195,6 +304,27 @@ function UI:updateHoveredButton(x, y)
         local buttonIndex = math.floor((x - panelX) / buttonWidth) + 1
         if buttonIndex >= 1 and buttonIndex <= #self.fileButtons then
             self.hoveredButton = self.fileButtons[buttonIndex]
+        end
+    end
+
+    -- Check cube net face hover
+    if self.world and self.world.currentMode == self.world.MODE_PLACE then
+        local width = lovr.system.getWindowWidth()
+        local panelX = width - self.panelWidth
+        local centerX = panelX + self.panelWidth/2
+        -- Note: You'll need to adjust this Y position based on where you draw the cube net
+        local centerY = self.startY - 200  -- Adjust this value to match where you actually draw the net
+
+        self.hoveredFace = nil
+        for face, pos in pairs(self.facePositions) do
+            local faceX = centerX + pos[1] * (self.faceLayoutSize + self.faceLayoutPadding)
+            local faceY = centerY + pos[2] * (self.faceLayoutSize + self.faceLayoutPadding)
+            
+            if math.abs(x - faceX) <= self.faceLayoutSize/2 and 
+               math.abs(y - faceY) <= self.faceLayoutSize/2 then
+                self.hoveredFace = face
+                break
+            end
         end
     end
 end
@@ -540,6 +670,9 @@ function UI:draw(pass)
 
     -- Draw shortcut hint at the bottom
     self:drawShortcutHint(pass)
+
+    local netY = self:drawCubeNet(pass, panelX, self.startY - 300)  -- Adjust Y position as needed
+
 end
 
 function UI:isPointInPanel(x, y)
@@ -616,6 +749,14 @@ function UI:handleClick(x, y)
         return true
     end
     
+    if self.world and self.world.currentMode == self.world.MODE_PLACE then
+        -- Check if we clicked a face in the cube net
+        if self.hoveredFace then
+            self.enabledFaces[self.hoveredFace] = not self.enabledFaces[self.hoveredFace]
+            return true
+        end
+    end
+
     return false
 end
 
