@@ -97,7 +97,7 @@ local UI = {
 function UI:drawCubeNet(pass, x, y)
     -- Calculate base position for the net (60 pixels from bottom, like the file buttons)
     local centerX = x + self.panelWidth/2
-    local centerY = 200  -- Fixed position from bottom, like the buttons
+    local centerY = 150  -- Fixed position from bottom, like the buttons
     
     -- Face label lookup
     local faceLabels = {
@@ -192,7 +192,7 @@ function UI:updateHoveredButton(x, y)
     -- Check cube net face hover using same coordinate system as buttons
     if self.world and self.world.currentMode == self.world.MODE_PLACE then
         local centerX = panelX + self.panelWidth/2
-        local centerY = height - 200  -- Fixed position from bottom, matching drawCubeNet
+        local centerY = height - 150  -- Fixed position from bottom, matching drawCubeNet
 
         self.hoveredFace = nil
         for face, pos in pairs(self.facePositions) do
