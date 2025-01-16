@@ -181,61 +181,57 @@ function World:duplicateSelectedBlocks()
     return true
 end
 
+-- In World class (world.lua)
 function World:handleKeyPressed(key)
-    if self.currentMode == self.MODE_SELECT then
-        -- Check for Command/Control + D
-        if key == "d" and (lovr.system.isKeyDown('lctrl') or lovr.system.isKeyDown('rctrl') or
-                          lovr.system.isKeyDown('lgui') or lovr.system.isKeyDown('rgui')) then
-            -- Duplicate blocks
-            return self:duplicateSelectedBlocks()
+    -- Mode-specific key handling
+    if self.currentMode == self.MODE_PLACE then
+        -- PLACE mode controls
+        if key == 'f' then
+            self.currentGridY = self.currentGridY + 1
+            return true
+        elseif key == 'r' then
+            self.currentGridY = self.currentGridY - 1
+            return true
         end
-
-        if self.currentMode == self.MODE_SELECT then
-            if key == 'r' then
-                -- Check if shift is held for counterclockwise rotation
-                local direction = lovr.system.isKeyDown('lshift') or 
-                                lovr.system.isKeyDown('rshift') and -1 or 1
-                for _, block in ipairs(self.selectedBlocks) do
-                    block:rotate(direction)
-                end
-                return true
+    elseif self.currentMode == self.MODE_SELECT then
+        -- SELECT mode controls
+        if key == 'delete' or key == 'backspace' then
+            for _, block in ipairs(self.selectedBlocks) do
+                self:removeBlock(block)
             end
-        end
-
-        -- Handle movement
-        local moved = false
-        if key == "left" then
-            moved = self:moveSelectedBlocks(-1, 0, 0)
-        elseif key == "right" then
-            moved = self:moveSelectedBlocks(1, 0, 0)
-        elseif key == "up" then
-            moved = self:moveSelectedBlocks(0, 0, -1)
-        elseif key == "down" then
-            moved = self:moveSelectedBlocks(0, 0, 1)
-        elseif key == "pageup" then
-            moved = self:moveSelectedBlocks(0, 1, 0)
-        elseif key == "pagedown" then
-            moved = self:moveSelectedBlocks(0, -1, 0)
-        end
-        if moved then return true end
-    end
-    
-    if self.currentMode == self.MODE_FACE_SELECT then
-        -- Move all selected faces instead of just the last selected one
-        if #self.selectedFaces > 0 then
-            if key == "up" then
-                for _, faceInfo in ipairs(self.selectedFaces) do
-                    faceInfo.block:moveFaceVertices(faceInfo.face, 1)  -- Move up
-                end
-                return true
-            elseif key == "down" then
-                for _, faceInfo in ipairs(self.selectedFaces) do
-                    faceInfo.block:moveFaceVertices(faceInfo.face, -1)  -- Move down
-                end
-                return true
+            self.selectedBlocks = {}
+            return true
+        elseif key == 'r' then
+            -- Rotation control
+            local direction = lovr.system.isKeyDown('lshift') or 
+                            lovr.system.isKeyDown('rshift') and -1 or 1
+            for _, block in ipairs(self.selectedBlocks) do
+                block:rotate(direction)
             end
+            return true
+        end
+    elseif self.currentMode == self.MODE_FACE_SELECT then
+        -- FACE_SELECT mode controls
+        if key == 'up' then
+            for _, faceInfo in ipairs(self.selectedFaces) do
+                faceInfo.block:moveFaceVertices(faceInfo.face, 1)
+            end
+            return true
+        elseif key == 'down' then
+            for _, faceInfo in ipairs(self.selectedFaces) do
+                faceInfo.block:moveFaceVertices(faceInfo.face, -1)
+            end
+            return true
         end
     end
+
+    -- Common controls for all modes
+    if key == 'pageup' or key == 'pagedown' then
+        local direction = key == 'pageup' and 1 or -1
+        self.currentGridY = self.currentGridY + direction
+        return true
+    end
+
     return false
 end
 
