@@ -1,38 +1,38 @@
 local Block = {
-    -- Position in world space (center of block base)
+    -- Position in world space (base position)
     position = nil,
     
-    -- Corner heights (1 = full height, lower values pull down)
+    -- Heights for each vertex in world units (no longer normalized 0-1)
+    -- Can be any value >= 0, adjusts in increments of 0.25
     -- Ordered: -x-z, +x-z, -x+z, +x+z (counter-clockwise from back left)
-    vertices = {1, 1, 1, 1},  -- Start at full height
+    vertices = {1, 1, 1, 1},  -- Start each vertex at height 1
     
-    -- Standard block dimensions
+    -- Block x/z dimensions (always 1x1)
     width = 1,
     depth = 1,
-    height = 1,
     
-    -- Height levels available (1 = full height, going down in quarters)
-    heightLevels = {1, 0.75, 0.5, 0.25, 0},  -- Fixed to have 4 divisions
+    -- Height increment for adjustments
+    heightIncrement = 0.25,
     
-    -- Face vertex mappings (which vertices belong to each face)
+    -- Face vertex mappings (which vertices each face uses)
     faceVertices = {
         front = {3, 4},   -- -x+z, +x+z
         back = {1, 2},    -- -x-z, +x-z
         left = {1, 3},    -- -x-z, -x+z
         right = {2, 4},   -- +x-z, +x+z
         top = {1, 2, 3, 4}, -- all vertices
-        bottom = {}       -- bottom face has no adjustable vertices
+        bottom = {1, 2, 3, 4}  -- bottom face now uses all vertices too
     },
 
     -- Store textures for each face
-    faceTextures = nil,  -- Will store textures for all 6 faces
-    faceTextureInfos = nil  -- Will store texture info for all 6 faces
+    faceTextures = nil,
+    faceTextureInfos = nil
 }
 
 function Block:new(x, y, z, texture, textureInfo)
     local block = setmetatable({}, { __index = Block })
     block.position = lovr.math.newVec3(x, y, z)
-    block.vertices = {1, 1, 1, 1}  -- Initialize all vertices at full height
+    block.vertices = {1, 1, 1, 1}  -- Initialize vertices at height 1
     block.faceTextures = {}
     block.faceTextureInfos = {}
     
@@ -47,55 +47,29 @@ function Block:new(x, y, z, texture, textureInfo)
     return block
 end
 
-function Block:getVertexLevel(index)
-    -- Convert height back to level (1-4)
-    local height = self.vertices[index]
-    for level, levelHeight in ipairs(self.heightLevels) do
-        if height == levelHeight then
-            return level
-        end
-    end
-    return 1  -- Default to full height if not found
-end
-
-function Block:setVertexHeight(index, level)
-    -- level should be 1-4 (1 = full height, 4 = lowest)
-    if index >= 1 and index <= 4 and level >= 1 and level <= 4 then
-        self.vertices[index] = self.heightLevels[level]
-    end
-end
-
 function Block:getFaceVertices(face)
     return self.faceVertices[face]
 end
 
 function Block:moveFaceVertices(face, direction)
-    -- direction: 1 for up, -1 for down
-    if face == "bottom" then return end -- Can't move bottom face
-    
     local vertices = self.faceVertices[face]
     if not vertices then return end
     
-    -- Get current minimum level among face vertices
-    local minLevel = 1
-    local maxLevel = 4
-    for _, vertexIndex in ipairs(vertices) do
-        local level = self:getVertexLevel(vertexIndex)
-        minLevel = math.max(minLevel, level)
-        maxLevel = math.min(maxLevel, level)
-    end
+    -- Calculate height adjustment
+    local heightChange = direction * self.heightIncrement
     
-    -- Calculate new level ensuring we stay within bounds
-    local newLevel
-    if direction > 0 then -- Moving up
-        newLevel = math.max(1, minLevel - 1)
-    else -- Moving down
-        newLevel = math.min(4, maxLevel + 1)
-    end
-    
-    -- Apply new height to all vertices of the face
-    for _, vertexIndex in ipairs(vertices) do
-        self:setVertexHeight(vertexIndex, newLevel)
+    if face == "bottom" then
+        -- For bottom face, move the block position and keep relative heights
+        self.position.y = self.position.y + heightChange
+    else
+        -- For other faces, adjust vertex heights directly
+        for _, vertexIndex in ipairs(vertices) do
+            -- Don't allow vertices to go below the block's base height
+            local newHeight = self.vertices[vertexIndex] + heightChange
+            if newHeight >= 0 then
+                self.vertices[vertexIndex] = newHeight
+            end
+        end
     end
 end
 
@@ -104,8 +78,9 @@ function Block:getCornerPosition(index)
     local xOffset = ((index == 2) or (index == 4)) and 0.5 or -0.5
     local zOffset = ((index == 3) or (index == 4)) and 0.5 or -0.5
     
+    -- Return absolute world position
     return self.position.x + xOffset,
-           self.position.y + (self.vertices[index] * self.height),
+           self.position.y + self.vertices[index],
            self.position.z + zOffset
 end
 
@@ -128,11 +103,11 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
     local heightPercentage
     if normal.y ~= 0 then
         -- For top/bottom faces, use average height of all corners
-        heightPercentage = 1.0  -- Top/bottom faces don't deform vertically
+        heightPercentage = 1.0  -- Faces that aren't vertical don't deform UVs
     else
-        -- For side faces, calculate based on the actual height of the face
+        -- For side faces, calculate based on the actual height
         local height = math.abs(v1.y - v3.y)
-        heightPercentage = height  -- Original height is 1.0
+        heightPercentage = height
     end
     
     -- Adjust UV coordinates based on height
@@ -229,16 +204,15 @@ function Block:draw(pass, hoveredFace, selectedFaces)
         corners[i] = vec3(self:getCornerPosition(i))
     end
     
-    -- Get bottom corners
-    local bottomCorners = {
-        vec3(corners[1].x, self.position.y, corners[1].z),
-        vec3(corners[2].x, self.position.y, corners[2].z),
-        vec3(corners[3].x, self.position.y, corners[3].z),
-        vec3(corners[4].x, self.position.y, corners[4].z)
-    }
+    -- Get bottom corners (now use actual vertex heights)
+    local bottomCorners = {}
+    for i = 1, 4 do
+        -- For bottom face, use position.y as the base
+        bottomCorners[i] = vec3(corners[i].x, self.position.y, corners[i].z)
+    end
     
     -- Draw faces with proper normals
-    -- Bottom face
+    -- Bottom face (now can be adjusted)
     self:drawFace(pass, bottomCorners[1], bottomCorners[2], bottomCorners[3], bottomCorners[4],
                  vec3(0, -1, 0), "bottom", hoveredFace == "bottom", selectedFaces)
     
@@ -313,22 +287,19 @@ function Block:intersectFace(rayStart, rayDir)
                 centerPoint:mul(1/vertexCount)
             elseif face.name == "bottom" then
                 -- For bottom face, use base height
-                local baseY = self.position.y
                 local x1, _, z1 = self:getCornerPosition(1)
                 local x2, _, z2 = self:getCornerPosition(2)
                 local x3, _, z3 = self:getCornerPosition(3)
                 local x4, _, z4 = self:getCornerPosition(4)
-                centerPoint = vec3((x1 + x2 + x3 + x4)/4, baseY, (z1 + z2 + z3 + z4)/4)
+                centerPoint = vec3((x1 + x2 + x3 + x4)/4, self.position.y, (z1 + z2 + z3 + z4)/4)
             else
                 -- For side faces, calculate center based on actual vertex positions
                 local v1Index, v2Index = vertices[1], vertices[2]
                 local x1, y1, z1 = self:getCornerPosition(v1Index)
                 local x2, y2, z2 = self:getCornerPosition(v2Index)
-                -- Include bottom vertices in center calculation
-                local bottomY = self.position.y
                 centerPoint = vec3(
                     (x1 + x2)/2,
-                    (y1 + y2 + bottomY + bottomY)/4,  -- Average of top and bottom heights
+                    (y1 + y2 + self.position.y + self.position.y)/4,
                     (z1 + z2)/2
                 )
             end
@@ -361,8 +332,8 @@ function Block:intersectFace(rayStart, rayDir)
                         local maxZ = math.max(z1, z2)
                         inBounds = hitPoint.z >= minZ and hitPoint.z <= maxZ and
                                   hitPoint.y >= minY and hitPoint.y <= maxY
-                    elseif face.name == "top" then
-                        -- For top face, check if point is within the deformed face boundary
+                    elseif face.name == "top" or face.name == "bottom" then
+                        -- For top/bottom faces, check if point is within rectangular boundary
                         local corners = {}
                         for _, vIndex in ipairs(vertices) do
                             local x, _, z = self:getCornerPosition(vIndex)
@@ -381,9 +352,6 @@ function Block:intersectFace(rayStart, rayDir)
                         end
                         inBounds = hitPoint.x >= minX and hitPoint.x <= maxX and
                                  hitPoint.z >= minZ and hitPoint.z <= maxZ
-                    else -- bottom face
-                        inBounds = math.abs(hitPoint.x - self.position.x) <= 0.5 and
-                                  math.abs(hitPoint.z - self.position.z) <= 0.5
                     end
                     
                     if inBounds then
