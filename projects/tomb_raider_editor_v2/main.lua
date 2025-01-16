@@ -92,9 +92,6 @@ function lovr.keypressed(key)
     if scene.world:handleKeyPressed(key) then
         return
     end
-    
-    -- Let camera handle remaining keys
-    scene.camera:handleKeyPressed(key)
 end
 
 function lovr.textinput(text)

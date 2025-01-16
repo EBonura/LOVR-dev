@@ -24,17 +24,6 @@ function Camera:setWorld(world)
   self.world = world
 end
 
-function Camera:handleKeyPressed(key)
-  -- Immediate response to key press
-  if self.world then
-    if key == 'r' then
-      self.world:shiftGridUp()
-    elseif key == 'f' then
-      self.world:shiftGridDown()
-    end
-  end
-end
-
 function Camera:update(dt)
   -- Camera rotation with mouse input
   if lovr.system.isMouseDown(2) then -- Right mouse button
@@ -56,26 +45,6 @@ function Camera:update(dt)
     
     self.lastx = mx
     self.lasty = my
-  end
-
-  -- Handle held keys for grid movement
-  if self.world then
-    if lovr.system.isKeyDown('r') or lovr.system.isKeyDown('f') then
-      self.gridKeyHoldTime = self.gridKeyHoldTime + dt
-      if self.gridKeyHoldTime > self.gridKeyHoldDelay then
-        -- Calculate how many moves should occur based on time held
-        local moveInterval = (self.gridKeyHoldTime - self.gridKeyHoldDelay) % self.gridMoveRepeatRate
-        if moveInterval < dt then  -- Only move on interval
-          if lovr.system.isKeyDown('r') then
-            self.world:shiftGridUp()
-          else
-            self.world:shiftGridDown()
-          end
-        end
-      end
-    else
-      self.gridKeyHoldTime = 0
-    end
   end
 
   -- WASD movement

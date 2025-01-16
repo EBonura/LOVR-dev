@@ -184,16 +184,7 @@ end
 -- In World class (world.lua)
 function World:handleKeyPressed(key)
     -- Mode-specific key handling
-    if self.currentMode == self.MODE_PLACE then
-        -- PLACE mode controls
-        if key == 'f' then
-            self.currentGridY = self.currentGridY + 1
-            return true
-        elseif key == 'r' then
-            self.currentGridY = self.currentGridY - 1
-            return true
-        end
-    elseif self.currentMode == self.MODE_SELECT then
+    if self.currentMode == self.MODE_SELECT then
         -- SELECT mode controls
         if key == 'delete' or key == 'backspace' then
             for _, block in ipairs(self.selectedBlocks) do
