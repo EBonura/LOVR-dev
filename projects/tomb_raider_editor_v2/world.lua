@@ -196,7 +196,7 @@ function World:handleKeyPressed(key)
                     
         if key == 'delete' or key == 'backspace' then
             for _, block in ipairs(self.selectedBlocks) do
-                self:removeBlock(block)
+                self:deleteBlock(block.position.x, block.position.y, block.position.z)
             end
             self.selectedBlocks = {}
             return true
