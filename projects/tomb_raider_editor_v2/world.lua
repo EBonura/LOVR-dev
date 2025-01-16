@@ -186,6 +186,14 @@ function World:handleKeyPressed(key)
     -- Mode-specific key handling
     if self.currentMode == self.MODE_SELECT then
         -- SELECT mode controls
+        local ctrl = lovr.system.isKeyDown('lctrl') or 
+                    lovr.system.isKeyDown('rctrl') or
+                    lovr.system.isKeyDown('lgui') or 
+                    lovr.system.isKeyDown('rgui')
+        
+        local shift = lovr.system.isKeyDown('lshift') or 
+                     lovr.system.isKeyDown('rshift')
+                    
         if key == 'delete' or key == 'backspace' then
             for _, block in ipairs(self.selectedBlocks) do
                 self:removeBlock(block)
@@ -194,12 +202,30 @@ function World:handleKeyPressed(key)
             return true
         elseif key == 'r' then
             -- Rotation control
-            local direction = lovr.system.isKeyDown('lshift') or 
-                            lovr.system.isKeyDown('rshift') and -1 or 1
+            local direction = shift and -1 or 1
             for _, block in ipairs(self.selectedBlocks) do
                 block:rotate(direction)
             end
             return true
+        elseif key == 'd' and ctrl then
+            -- Duplicate selected blocks (Ctrl+D)
+            return self:duplicateSelectedBlocks()
+        elseif key == 'up' then
+            if shift then
+                return self:moveSelectedBlocks(0, 1, 0)  -- Move up
+            else
+                return self:moveSelectedBlocks(0, 0, -1) -- Move forward
+            end
+        elseif key == 'down' then
+            if shift then
+                return self:moveSelectedBlocks(0, -1, 0)  -- Move down
+            else
+                return self:moveSelectedBlocks(0, 0, 1)   -- Move backward
+            end
+        elseif key == 'left' then
+            return self:moveSelectedBlocks(-1, 0, 0)
+        elseif key == 'right' then
+            return self:moveSelectedBlocks(1, 0, 0)
         end
     elseif self.currentMode == self.MODE_FACE_SELECT then
         -- FACE_SELECT mode controls
