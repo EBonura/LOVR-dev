@@ -99,6 +99,16 @@ function UI:drawCubeNet(pass, x, y)
     local centerX = x + self.panelWidth/2
     local centerY = 200  -- Fixed position from bottom, like the buttons
     
+    -- Face label lookup
+    local faceLabels = {
+        top = "Top",
+        bottom = "Bottom",
+        front = "Front",
+        back = "Back",
+        left = "Left",
+        right = "Right"
+    }
+    
     -- Draw each face
     for face, pos in pairs(self.facePositions) do
         local faceX = centerX + pos[1] * (self.faceLayoutSize + self.faceLayoutPadding)
@@ -147,14 +157,18 @@ function UI:drawCubeNet(pass, x, y)
             )
         end
         
-        -- Draw face name
+        -- Draw face label with smaller font size and full name
         pass:setColor(1, 1, 1, 1)
         pass:text(
-            face:sub(1,1):upper(),
+            faceLabels[face],
             faceX,
             faceY,
             0,
-            0.4
+            0.25,  -- Smaller font size
+            0,     -- Rotation
+            0, 1, 0, -- Axis
+            nil,   -- Width (no wrap)
+            'center' -- Horizontal alignment
         )
     end
 end
