@@ -95,9 +95,9 @@ local UI = {
 }
 
 function UI:drawCubeNet(pass, x, y)
-    -- Calculate center position for the net
+    -- Calculate base position for the net (60 pixels from bottom, like the file buttons)
     local centerX = x + self.panelWidth/2
-    local centerY = y + self.faceLayoutSize * 2
+    local centerY = 200  -- Fixed position from bottom, like the buttons
     
     -- Draw each face
     for face, pos in pairs(self.facePositions) do
@@ -157,11 +157,42 @@ function UI:drawCubeNet(pass, x, y)
             0.4
         )
     end
-    
-    return y + self.faceLayoutSize * 4  -- Return next Y position
 end
 
+function UI:updateHoveredButton(x, y)
+    local width = lovr.system.getWindowWidth()
+    local height = lovr.system.getWindowHeight()
+    local panelX = width - self.panelWidth
+    local buttonWidth = self.panelWidth / #self.fileButtons
 
+    self.hoveredButton = nil
+    
+    -- Check file buttons (60 pixels from bottom)
+    if y >= (height - 60) and y <= (height - 60 + self.buttonHeight) then
+        local buttonIndex = math.floor((x - panelX) / buttonWidth) + 1
+        if buttonIndex >= 1 and buttonIndex <= #self.fileButtons then
+            self.hoveredButton = self.fileButtons[buttonIndex]
+        end
+    end
+
+    -- Check cube net face hover using same coordinate system as buttons
+    if self.world and self.world.currentMode == self.world.MODE_PLACE then
+        local centerX = panelX + self.panelWidth/2
+        local centerY = height - 200  -- Fixed position from bottom, matching drawCubeNet
+
+        self.hoveredFace = nil
+        for face, pos in pairs(self.facePositions) do
+            local faceX = centerX + pos[1] * (self.faceLayoutSize + self.faceLayoutPadding)
+            local faceY = centerY - pos[2] * (self.faceLayoutSize + self.faceLayoutPadding)
+            
+            if math.abs(x - faceX) <= self.faceLayoutSize/2 and 
+               math.abs(y - faceY) <= self.faceLayoutSize/2 then
+                self.hoveredFace = face
+                break
+            end
+        end
+    end
+end
 
 function UI:drawShortcutHint(pass)
     if not self.world then return end
@@ -277,42 +308,6 @@ function UI:isPointInButton(x, y, buttonX, buttonY, width, height)
            y <= buttonY + height/2
 end
 
-function UI:updateHoveredButton(x, y)
-    local width = lovr.system.getWindowWidth()
-    local height = lovr.system.getWindowHeight()
-    local panelX = width - self.panelWidth
-    local buttonWidth = self.panelWidth / #self.fileButtons
-
-    self.hoveredButton = nil
-    
-    -- Buttons are now 60 pixels from bottom
-    if y >= (height - 60) and y <= (height - 60 + self.buttonHeight) then
-        local buttonIndex = math.floor((x - panelX) / buttonWidth) + 1
-        if buttonIndex >= 1 and buttonIndex <= #self.fileButtons then
-            self.hoveredButton = self.fileButtons[buttonIndex]
-        end
-    end
-
-    -- Check cube net face hover
-    if self.world and self.world.currentMode == self.world.MODE_PLACE then
-        local centerX = panelX + self.panelWidth/2
-        -- Get windowY like other UI elements (adjust this value to match where the cube net is drawn)
-        local windowY = height - y
-        local centerY = self.startY - 200  -- Matches where we draw the net
-
-        self.hoveredFace = nil
-        for face, pos in pairs(self.facePositions) do
-            local faceX = centerX + pos[1] * (self.faceLayoutSize + self.faceLayoutPadding)
-            local faceY = centerY + pos[2] * (self.faceLayoutSize + self.faceLayoutPadding)
-            
-            if math.abs(x - faceX) <= self.faceLayoutSize/2 and 
-            math.abs(windowY - faceY) <= self.faceLayoutSize/2 then
-                self.hoveredFace = face
-                break
-            end
-        end
-    end
-end
 
 function UI:mousepressed(x, y, button)
     if button == 1 then -- Left click
