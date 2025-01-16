@@ -619,6 +619,15 @@ function UI:handleClick(x, y)
     return false
 end
 
+function UI:getFolderIndex(folderName)
+    for i, folder in ipairs(self.availableFolders) do
+        if folder == folderName then
+            return i
+        end
+    end
+    return 1  -- Return first folder if not found
+end
+
 function UI:setSelectedTextureByImage(texture, textureInfo)
     if not texture or not textureInfo then return false end
     
