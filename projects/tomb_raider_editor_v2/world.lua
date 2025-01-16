@@ -29,8 +29,9 @@ local World = {
 function World:new(camera)
     local world = setmetatable({}, { __index = World })
     world.camera = camera
-    world.blocks = {}  -- Initialize empty blocks table
-    world.ui = nil    -- Will be set later
+    world.blocks = {}
+    world.ui = nil
+    world.history = require('history'):new()  -- Add this line
     return world
 end
 
@@ -81,22 +82,6 @@ function World:findBlockAt(x, y, z)
     return nil
 end
 
-function World:deleteBlock(x, y, z)
-    for i = #self.blocks, 1, -1 do
-        local block = self.blocks[i]
-        if block.position.x == x and 
-           block.position.y == y and 
-           block.position.z == z then
-            table.remove(self.blocks, i)
-            if block == self.selectedBlock then
-                self.selectedBlock = nil
-            end
-            return true
-        end
-    end
-    return false
-end
-
 function World:moveSelectedBlocks(dx, dy, dz)
     if self.currentMode ~= self.MODE_SELECT or #self.selectedBlocks == 0 then
         return false
@@ -119,6 +104,9 @@ function World:moveSelectedBlocks(dx, dy, dz)
         end
     end
 
+    -- Save state before movement
+    self.history:pushState(self)
+
     -- If no collisions, perform the movement
     for _, block in ipairs(self.selectedBlocks) do
         block.position:add(vec3(dx, dy, dz))
@@ -139,6 +127,9 @@ function World:duplicateSelectedBlocks()
     if self.currentMode ~= self.MODE_SELECT or #self.selectedBlocks == 0 then
         return false
     end
+
+    -- Save state before duplication
+    self.history:pushState(self)
 
     local newBlocks = {}
     
@@ -183,28 +174,51 @@ end
 
 -- In World class (world.lua)
 function World:handleKeyPressed(key)
+    -- Check for undo/redo first
+    local ctrl = lovr.system.isKeyDown('lctrl') or 
+                lovr.system.isKeyDown('rctrl') or
+                lovr.system.isKeyDown('lgui') or 
+                lovr.system.isKeyDown('rgui')
+    
+    local shift = lovr.system.isKeyDown('lshift') or 
+                 lovr.system.isKeyDown('rshift')
+    
+    if ctrl then
+        if key == 'z' then
+            if shift then
+                -- Redo (Ctrl+Shift+Z)
+                if self.history:redo(self) then
+                    return true
+                end
+            else
+                -- Undo (Ctrl+Z)
+                if self.history:undo(self) then
+                    return true
+                end
+            end
+        end
+    end
+
     -- Mode-specific key handling
     if self.currentMode == self.MODE_SELECT then
         -- SELECT mode controls
-        local ctrl = lovr.system.isKeyDown('lctrl') or 
-                    lovr.system.isKeyDown('rctrl') or
-                    lovr.system.isKeyDown('lgui') or 
-                    lovr.system.isKeyDown('rgui')
-        
-        local shift = lovr.system.isKeyDown('lshift') or 
-                     lovr.system.isKeyDown('rshift')
-                    
         if key == 'delete' or key == 'backspace' then
-            for _, block in ipairs(self.selectedBlocks) do
-                self:deleteBlock(block.position.x, block.position.y, block.position.z)
+            if #self.selectedBlocks > 0 then
+                self.history:pushState(self)
+                for _, block in ipairs(self.selectedBlocks) do
+                    self:deleteBlock(block.position.x, block.position.y, block.position.z)
+                end
+                self.selectedBlocks = {}
             end
-            self.selectedBlocks = {}
             return true
         elseif key == 'r' then
-            -- Rotation control
-            local direction = shift and -1 or 1
-            for _, block in ipairs(self.selectedBlocks) do
-                block:rotate(direction)
+            if #self.selectedBlocks > 0 then
+                -- Rotation control
+                self.history:pushState(self)
+                local direction = shift and -1 or 1
+                for _, block in ipairs(self.selectedBlocks) do
+                    block:rotate(direction)
+                end
             end
             return true
         elseif key == 'd' and ctrl then
@@ -229,14 +243,11 @@ function World:handleKeyPressed(key)
         end
     elseif self.currentMode == self.MODE_FACE_SELECT then
         -- FACE_SELECT mode controls
-        if key == 'up' then
+        if (key == 'up' or key == 'down') and #self.selectedFaces > 0 then
+            self.history:pushState(self)
+            local direction = key == 'up' and 1 or -1
             for _, faceInfo in ipairs(self.selectedFaces) do
-                faceInfo.block:moveFaceVertices(faceInfo.face, 1)
-            end
-            return true
-        elseif key == 'down' then
-            for _, faceInfo in ipairs(self.selectedFaces) do
-                faceInfo.block:moveFaceVertices(faceInfo.face, -1)
+                faceInfo.block:moveFaceVertices(faceInfo.face, direction)
             end
             return true
         end
@@ -353,6 +364,9 @@ function World:placeBlock(x, y, z)
         end
     end
     
+    -- Save state before modification
+    self.history:pushState(self)
+    
     -- Get current texture from UI
     local texture = nil
     local textureInfo = nil
@@ -368,6 +382,24 @@ function World:placeBlock(x, y, z)
     local block = Block:new(x, y, z, texture, textureInfo)
     table.insert(self.blocks, block)
     return true
+end
+
+function World:deleteBlock(x, y, z)
+    for i = #self.blocks, 1, -1 do
+        local block = self.blocks[i]
+        if block.position.x == x and 
+           block.position.y == y and 
+           block.position.z == z then
+            -- Note: We don't push history state here because deletion is always
+            -- called from a function that already pushed the state
+            table.remove(self.blocks, i)
+            if block == self.selectedBlock then
+                self.selectedBlock = nil
+            end
+            return true
+        end
+    end
+    return false
 end
 
 function World:drawBlock(pass, block)
