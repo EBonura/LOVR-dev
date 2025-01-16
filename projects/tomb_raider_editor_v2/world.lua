@@ -290,8 +290,20 @@ function World:handleClick(x, y, z, isShiftHeld)
                 self.selectedBlocks = {block}
             end
             
-            -- Sync UI texture selection with block's texture
+            -- Update UI face states based on selected block
             if self.ui then
+                -- Reset face states
+                for face in pairs(self.ui.enabledFaces) do
+                    self.ui.enabledFaces[face] = false
+                end
+                
+                -- Enable faces that have textures
+                for face, texture in pairs(block.faceTextures) do
+                    if texture then
+                        self.ui.enabledFaces[face] = true
+                    end
+                end
+                
                 -- Get texture from front face as default
                 local frontTexture = block.faceTextures["front"]
                 local frontTextureInfo = block.faceTextureInfos["front"]
@@ -303,53 +315,6 @@ function World:handleClick(x, y, z, isShiftHeld)
             -- Clear selection only if shift is not held
             self.selectedBlock = nil
             self.selectedBlocks = {}
-        end
-    elseif self.currentMode == self.MODE_FACE_SELECT and self.hoveredFace then
-        -- In face select mode, handle face selection
-        if isShiftHeld then
-            -- Add to or remove from multi-selection
-            local isAlreadySelected = false
-            for i, selectedFace in ipairs(self.selectedFaces) do
-                if selectedFace.block == self.hoveredFace.block and 
-                   selectedFace.face == self.hoveredFace.face then
-                    table.remove(self.selectedFaces, i)
-                    isAlreadySelected = true
-                    break
-                end
-            end
-            if not isAlreadySelected then
-                table.insert(self.selectedFaces, {
-                    block = self.hoveredFace.block,
-                    face = self.hoveredFace.face
-                })
-            end
-            -- Update primary selection
-            self.selectedFace = {
-                block = self.hoveredFace.block,
-                face = self.hoveredFace.face
-            }
-        else
-            -- Single selection
-            self.selectedFace = {
-                block = self.hoveredFace.block,
-                face = self.hoveredFace.face
-            }
-            self.selectedFaces = {{
-                block = self.hoveredFace.block,
-                face = self.hoveredFace.face
-            }}
-        end
-        
-        -- Sync UI texture selection with face texture
-        if self.ui then
-            local block = self.selectedFace.block
-            local face = self.selectedFace.face
-            local faceTexture = block.faceTextures[face]
-            local faceTextureInfo = block.faceTextureInfos[face]
-            
-            if faceTexture and faceTextureInfo then
-                self.ui:setSelectedTextureByImage(faceTexture, faceTextureInfo)
-            end
         end
     end
 end
