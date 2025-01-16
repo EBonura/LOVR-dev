@@ -95,20 +95,6 @@ local UI = {
 }
 
 function UI:drawCubeNet(pass, x, y)
-    -- Title for the cube net
-    pass:setColor(1, 1, 1, 1)
-    pass:text(
-        "Face Selection",
-        x + self.padding,
-        y,
-        0,
-        0.5,
-        0,
-        0, 1, 0,
-        0,
-        'left'
-    )
-    
     -- Calculate center position for the net
     local centerX = x + self.panelWidth/2
     local centerY = y + self.faceLayoutSize * 2
@@ -309,11 +295,10 @@ function UI:updateHoveredButton(x, y)
 
     -- Check cube net face hover
     if self.world and self.world.currentMode == self.world.MODE_PLACE then
-        local width = lovr.system.getWindowWidth()
-        local panelX = width - self.panelWidth
         local centerX = panelX + self.panelWidth/2
-        -- Note: You'll need to adjust this Y position based on where you draw the cube net
-        local centerY = self.startY - 200  -- Adjust this value to match where you actually draw the net
+        -- Get windowY like other UI elements (adjust this value to match where the cube net is drawn)
+        local windowY = height - y
+        local centerY = self.startY - 200  -- Matches where we draw the net
 
         self.hoveredFace = nil
         for face, pos in pairs(self.facePositions) do
@@ -321,7 +306,7 @@ function UI:updateHoveredButton(x, y)
             local faceY = centerY + pos[2] * (self.faceLayoutSize + self.faceLayoutPadding)
             
             if math.abs(x - faceX) <= self.faceLayoutSize/2 and 
-               math.abs(y - faceY) <= self.faceLayoutSize/2 then
+            math.abs(windowY - faceY) <= self.faceLayoutSize/2 then
                 self.hoveredFace = face
                 break
             end
@@ -671,7 +656,7 @@ function UI:draw(pass)
     -- Draw shortcut hint at the bottom
     self:drawShortcutHint(pass)
 
-    local netY = self:drawCubeNet(pass, panelX, self.startY - 300)  -- Adjust Y position as needed
+    local netY = self:drawCubeNet(pass, panelX, self.startY - 500)
 
 end
 
