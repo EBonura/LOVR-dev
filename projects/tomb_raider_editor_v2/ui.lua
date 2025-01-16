@@ -94,6 +94,15 @@ local UI = {
     hoveredFace = nil,
 }
 
+function UI:getFolderIndex(folderName)
+    for i, folder in ipairs(self.availableFolders) do
+        if folder == folderName then
+            return i
+        end
+    end
+    return 1  -- Default to first folder if not found
+end
+
 function UI:updateHoveredButton(x, y)
     local width = lovr.system.getWindowWidth()
     local height = lovr.system.getWindowHeight()
