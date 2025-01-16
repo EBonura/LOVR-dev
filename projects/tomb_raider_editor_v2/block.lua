@@ -398,4 +398,59 @@ function Block:intersectFace(rayStart, rayDir)
     return closestFace, closestT
 end
 
+function Block:rotate(direction)
+    -- direction should be 1 for clockwise, -1 for counterclockwise
+    -- Rotate vertex heights (corners)
+    if direction == 1 then
+        -- Clockwise rotation
+        local temp = self.vertices[1]
+        self.vertices[1] = self.vertices[3]
+        self.vertices[3] = self.vertices[4]
+        self.vertices[4] = self.vertices[2]
+        self.vertices[2] = temp
+    else
+        -- Counterclockwise rotation
+        local temp = self.vertices[1]
+        self.vertices[1] = self.vertices[2]
+        self.vertices[2] = self.vertices[4]
+        self.vertices[4] = self.vertices[3]
+        self.vertices[3] = temp
+    end
+
+    -- Rotate face textures and their info
+    local faces = {"front", "right", "back", "left"}
+    local textures = {}
+    local textureInfos = {}
+    
+    -- Store current textures and their info
+    for _, face in ipairs(faces) do
+        textures[face] = self.faceTextures[face]
+        textureInfos[face] = self.faceTextureInfos[face]
+    end
+    
+    if direction == 1 then
+        -- Clockwise rotation
+        self.faceTextures.front = textures.left
+        self.faceTextures.right = textures.front
+        self.faceTextures.back = textures.right
+        self.faceTextures.left = textures.back
+        
+        self.faceTextureInfos.front = textureInfos.left
+        self.faceTextureInfos.right = textureInfos.front
+        self.faceTextureInfos.back = textureInfos.right
+        self.faceTextureInfos.left = textureInfos.back
+    else
+        -- Counterclockwise rotation
+        self.faceTextures.front = textures.right
+        self.faceTextures.right = textures.back
+        self.faceTextures.back = textures.left
+        self.faceTextures.left = textures.front
+        
+        self.faceTextureInfos.front = textureInfos.right
+        self.faceTextureInfos.right = textureInfos.back
+        self.faceTextureInfos.back = textureInfos.left
+        self.faceTextureInfos.left = textureInfos.front
+    end
+end
+
 return Block

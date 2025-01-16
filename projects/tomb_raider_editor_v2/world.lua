@@ -189,7 +189,19 @@ function World:handleKeyPressed(key)
             -- Duplicate blocks
             return self:duplicateSelectedBlocks()
         end
-        
+
+        if self.currentMode == self.MODE_SELECT then
+            if key == 'r' then
+                -- Check if shift is held for counterclockwise rotation
+                local direction = lovr.system.isKeyDown('lshift') or 
+                                lovr.system.isKeyDown('rshift') and -1 or 1
+                for _, block in ipairs(self.selectedBlocks) do
+                    block:rotate(direction)
+                end
+                return true
+            end
+        end
+
         -- Handle movement
         local moved = false
         if key == "left" then
