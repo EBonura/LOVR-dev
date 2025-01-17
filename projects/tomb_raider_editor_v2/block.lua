@@ -60,11 +60,9 @@ function Block:moveFaceVertices(face, direction)
     
     -- Adjust vertex heights directly for all vertices in the face
     for _, vertexIndex in ipairs(vertices) do
-        -- Don't allow vertices to go below 0
+        -- Allow vertices to go below base height (can be negative relative to base)
         local newHeight = self.vertices[vertexIndex] + heightChange
-        if newHeight >= 0 then
-            self.vertices[vertexIndex] = newHeight
-        end
+        self.vertices[vertexIndex] = newHeight
     end
 end
 
