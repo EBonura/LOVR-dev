@@ -181,10 +181,28 @@ function UI:drawCubeNet(pass, x, y)
         
         -- Draw enabled/disabled state
         if self.enabledFaces[face] then
-            -- Draw preview of current texture if selected
-            if self.selectedTexture then
+            -- Get the actual texture for this face if we have a selected block
+            local faceTexture = self.selectedTexture and self.selectedTexture.texture
+            if self.world and 
+            ((self.world.currentMode == self.world.MODE_SELECT and #self.world.selectedBlocks > 0) or
+                (self.world.currentMode == self.world.MODE_FACE_SELECT and #self.world.selectedFaces > 0)) then
+                
+                local block
+                if self.world.currentMode == self.world.MODE_SELECT then
+                    block = self.world.selectedBlocks[1]
+                else
+                    block = self.world.selectedFaces[1].block
+                end
+                
+                if block and block.faceTextures[face] then
+                    faceTexture = block.faceTextures[face]
+                end
+            end
+            
+            -- Draw the face's texture if it has one
+            if faceTexture then
                 pass:setColor(1, 1, 1, 1)
-                pass:setMaterial(self.selectedTexture.texture)
+                pass:setMaterial(faceTexture)
                 pass:plane(
                     faceX,
                     faceY,

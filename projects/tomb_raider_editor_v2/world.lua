@@ -348,8 +348,8 @@ function World:handleClick(x, y, z, isShiftHeld)
                 
                 -- Check each face for textures and update UI accordingly
                 local faces = {"front", "back", "left", "right", "top", "bottom"}
-                local firstTexture, firstTextureInfo
                 
+                -- Update each face in the UI
                 for _, face in ipairs(faces) do
                     local texture = block.faceTextures[face]
                     local textureInfo = block.faceTextureInfos[face]
@@ -357,23 +357,18 @@ function World:handleClick(x, y, z, isShiftHeld)
                     if texture then
                         -- Enable the face if it has a texture
                         self.ui.enabledFaces[face] = true
-                        
-                        -- Store the first texture we find for initial display
-                        if not firstTexture then
-                            firstTexture = texture
-                            firstTextureInfo = textureInfo
-                        end
-                        
-                        -- Update the UI with this face's texture
-                        if face == 'front' then  -- Or whichever face you want to show by default
-                            self.ui:setSelectedTextureByImage(texture, textureInfo)
-                        end
                     end
                 end
                 
-                -- If we didn't find any textures, use the first texture found (fallback)
-                if not self.ui.selectedTexture and firstTexture then
-                    self.ui:setSelectedTextureByImage(firstTexture, firstTextureInfo)
+                -- Pick one face's texture to show in the texture panel selection
+                -- (preferably one that has a texture)
+                for _, face in ipairs(faces) do
+                    local texture = block.faceTextures[face]
+                    local textureInfo = block.faceTextureInfos[face]
+                    if texture and textureInfo then
+                        self.ui:setSelectedTextureByImage(texture, textureInfo)
+                        break
+                    end
                 end
             end
         elseif not isShiftHeld then
