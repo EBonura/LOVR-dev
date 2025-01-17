@@ -133,17 +133,66 @@ function World:duplicateSelectedBlocks()
 
     local newBlocks = {}
     
-    -- Create duplicates of all selected blocks
+    -- Try different offsets in this order: right, left, front, back, up, down
+    local offsets = {
+        {x = 1, y = 0, z = 0},   -- right
+        {x = -1, y = 0, z = 0},  -- left
+        {x = 0, y = 0, z = 1},   -- front
+        {x = 0, y = 0, z = -1},  -- back
+        {x = 0, y = 1, z = 0},   -- up
+        {x = 0, y = -1, z = 0}   -- down
+    }
+
+    -- Function to check if a position is available
+    local function isPositionAvailable(x, y, z)
+        for _, block in ipairs(self.blocks) do
+            if block.position.x == x and
+               block.position.y == y and
+               block.position.z == z then
+                return false
+            end
+        end
+        return true
+    end
+
+    -- Find the first valid offset that works for all selected blocks
+    local validOffset = nil
+    for _, offset in ipairs(offsets) do
+        local isOffsetValid = true
+        
+        -- Check if this offset works for all selected blocks
+        for _, block in ipairs(self.selectedBlocks) do
+            local newX = block.position.x + offset.x
+            local newY = block.position.y + offset.y
+            local newZ = block.position.z + offset.z
+            
+            if not isPositionAvailable(newX, newY, newZ) then
+                isOffsetValid = false
+                break
+            end
+        end
+        
+        if isOffsetValid then
+            validOffset = offset
+            break
+        end
+    end
+
+    -- If no valid offset found, return false
+    if not validOffset then
+        return false
+    end
+
+    -- Create duplicates of all selected blocks at the valid offset
     for _, block in ipairs(self.selectedBlocks) do
-        -- Create new block one unit up from the original
         local newBlock = Block:new(
-            block.position.x,
-            block.position.y + 1,  -- Offset upward by 1 unit
-            block.position.z
+            block.position.x + validOffset.x,
+            block.position.y + validOffset.y,
+            block.position.z + validOffset.z
         )
         
         -- Copy vertex heights
-        for i = 1, 4 do
+        for i = 1, #block.vertices do
             newBlock.vertices[i] = block.vertices[i]
         end
         
