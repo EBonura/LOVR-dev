@@ -208,16 +208,16 @@ function Block:draw(pass, hoveredFace, selectedFaces)
     self:drawFace(pass, corners[5], corners[6], corners[7], corners[8],
                  vec3(0, -1, 0), "bottom", hoveredFace == "bottom", selectedFaces)
     
-    -- Front face (3,4,7,8)
-    self:drawFace(pass, corners[3], corners[4], corners[7], corners[8],
+    -- Front face (3,4,7,8) - reordered for correct winding
+    self:drawFace(pass, corners[4], corners[3], corners[8], corners[7],
                  vec3(0, 0, 1), "front", hoveredFace == "front", selectedFaces)
     
     -- Back face (1,2,5,6)
     self:drawFace(pass, corners[1], corners[2], corners[5], corners[6],
                  vec3(0, 0, -1), "back", hoveredFace == "back", selectedFaces)
     
-    -- Left face (1,3,5,7)
-    self:drawFace(pass, corners[1], corners[3], corners[5], corners[7],
+    -- Left face (1,3,5,7) - reordered for correct winding
+    self:drawFace(pass, corners[3], corners[1], corners[7], corners[5],
                  vec3(-1, 0, 0), "left", hoveredFace == "left", selectedFaces)
     
     -- Right face (2,4,6,8)
