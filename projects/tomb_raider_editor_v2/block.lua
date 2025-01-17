@@ -4,8 +4,8 @@ local Block = {
     
     -- Heights for each vertex in world units (no longer normalized 0-1)
     -- Can be any value >= 0, adjusts in increments of 0.25
-    -- Ordered: -x-z, +x-z, -x+z, +x+z (counter-clockwise from back left)
-    vertices = {1, 1, 1, 1},  -- Start each vertex at height 1
+    -- Ordered: (top vertices) -x-z, +x-z, -x+z, +x+z, (bottom vertices) -x-z, +x-z, -x+z, +x+z
+    vertices = {1, 1, 1, 1, 0, 0, 0, 0},  -- Start with flat top at height 1, bottom at height 0
     
     -- Block x/z dimensions (always 1x1)
     width = 1,
@@ -16,12 +16,12 @@ local Block = {
     
     -- Face vertex mappings (which vertices each face uses)
     faceVertices = {
-        front = {3, 4},   -- -x+z, +x+z
-        back = {1, 2},    -- -x-z, +x-z
-        left = {1, 3},    -- -x-z, -x+z
-        right = {2, 4},   -- +x-z, +x+z
-        top = {1, 2, 3, 4}, -- all vertices
-        bottom = {1, 2, 3, 4}  -- bottom face now uses all vertices too
+        front = {3, 4, 7, 8},   -- -x+z, +x+z for both top and bottom
+        back = {1, 2, 5, 6},    -- -x-z, +x-z for both top and bottom
+        left = {1, 3, 5, 7},    -- -x-z, -x+z for both top and bottom
+        right = {2, 4, 6, 8},   -- +x-z, +x+z for both top and bottom
+        top = {1, 2, 3, 4},     -- top 4 vertices
+        bottom = {5, 6, 7, 8}   -- bottom 4 vertices
     },
 
     -- Store textures for each face
@@ -32,7 +32,7 @@ local Block = {
 function Block:new(x, y, z, texture, textureInfo)
     local block = setmetatable({}, { __index = Block })
     block.position = lovr.math.newVec3(x, y, z)
-    block.vertices = {1, 1, 1, 1}  -- Initialize vertices at height 1
+    block.vertices = {1, 1, 1, 1, 0, 0, 0, 0}  -- Initialize with flat top and bottom
     block.faceTextures = {}
     block.faceTextureInfos = {}
     
@@ -58,25 +58,20 @@ function Block:moveFaceVertices(face, direction)
     -- Calculate height adjustment
     local heightChange = direction * self.heightIncrement
     
-    if face == "bottom" then
-        -- For bottom face, move the block position and keep relative heights
-        self.position.y = self.position.y + heightChange
-    else
-        -- For other faces, adjust vertex heights directly
-        for _, vertexIndex in ipairs(vertices) do
-            -- Don't allow vertices to go below the block's base height
-            local newHeight = self.vertices[vertexIndex] + heightChange
-            if newHeight >= 0 then
-                self.vertices[vertexIndex] = newHeight
-            end
+    -- Adjust vertex heights directly for all vertices in the face
+    for _, vertexIndex in ipairs(vertices) do
+        -- Don't allow vertices to go below 0
+        local newHeight = self.vertices[vertexIndex] + heightChange
+        if newHeight >= 0 then
+            self.vertices[vertexIndex] = newHeight
         end
     end
 end
 
 function Block:getCornerPosition(index)
     -- Define offsets for a 1x1 block (±0.5 in each direction)
-    local xOffset = ((index == 2) or (index == 4)) and 0.5 or -0.5
-    local zOffset = ((index == 3) or (index == 4)) and 0.5 or -0.5
+    local xOffset = ((index == 2) or (index == 4) or (index == 6) or (index == 8)) and 0.5 or -0.5
+    local zOffset = ((index == 3) or (index == 4) or (index == 7) or (index == 8)) and 0.5 or -0.5
     
     -- Return absolute world position
     return self.position.x + xOffset,
@@ -106,7 +101,7 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
         heightPercentage = 1.0  -- Faces that aren't vertical don't deform UVs
     else
         -- For side faces, calculate based on the actual height
-        local height = math.abs(v1.y - v3.y)
+        local height = math.max(math.abs(v1.y - v3.y), math.abs(v2.y - v4.y))
         heightPercentage = height
     end
     
@@ -128,7 +123,6 @@ function Block:drawFace(pass, v1, v2, v3, v4, normal, faceName, isHovered, selec
     -- Create vertices with proper winding order based on face normal
     local vertices
     if normal.y > 0 then  -- Top face
-        -- Counter-clockwise when viewed from above
         vertices = {
             -- First triangle (v1, v3, v2)
             { v1.x, v1.y, v1.z, normal.x, normal.y, normal.z, v1UV[1], v1UV[2] },
@@ -200,35 +194,105 @@ end
 function Block:draw(pass, hoveredFace, selectedFaces)
     -- Get all corner positions
     local corners = {}
-    for i = 1, 4 do
+    for i = 1, 8 do  -- Now get all 8 corners
         corners[i] = vec3(self:getCornerPosition(i))
     end
     
-    -- Get bottom corners (now use actual vertex heights)
-    local bottomCorners = {}
-    for i = 1, 4 do
-        -- For bottom face, use position.y as the base
-        bottomCorners[i] = vec3(corners[i].x, self.position.y, corners[i].z)
-    end
-    
-    -- Draw faces with proper normals
-    -- Bottom face (now can be adjusted)
-    self:drawFace(pass, bottomCorners[1], bottomCorners[2], bottomCorners[3], bottomCorners[4],
-                 vec3(0, -1, 0), "bottom", hoveredFace == "bottom", selectedFaces)
-    
-    -- Top face
+    -- Draw faces with proper vertex order
+    -- Draw faces with corresponding vertices
+    -- Top face (1,2,3,4)
     self:drawFace(pass, corners[1], corners[2], corners[3], corners[4],
                  vec3(0, 1, 0), "top", hoveredFace == "top", selectedFaces)
     
-    -- Side faces
-    self:drawFace(pass, corners[1], corners[2], bottomCorners[1], bottomCorners[2],
-                 vec3(0, 0, -1), "back", hoveredFace == "back", selectedFaces)
-    self:drawFace(pass, corners[2], corners[4], bottomCorners[2], bottomCorners[4],
-                 vec3(1, 0, 0), "right", hoveredFace == "right", selectedFaces)
-    self:drawFace(pass, corners[4], corners[3], bottomCorners[4], bottomCorners[3],
+    -- Bottom face (5,6,7,8)
+    self:drawFace(pass, corners[5], corners[6], corners[7], corners[8],
+                 vec3(0, -1, 0), "bottom", hoveredFace == "bottom", selectedFaces)
+    
+    -- Front face (3,4,7,8)
+    self:drawFace(pass, corners[3], corners[4], corners[7], corners[8],
                  vec3(0, 0, 1), "front", hoveredFace == "front", selectedFaces)
-    self:drawFace(pass, corners[3], corners[1], bottomCorners[3], bottomCorners[1],
+    
+    -- Back face (1,2,5,6)
+    self:drawFace(pass, corners[1], corners[2], corners[5], corners[6],
+                 vec3(0, 0, -1), "back", hoveredFace == "back", selectedFaces)
+    
+    -- Left face (1,3,5,7)
+    self:drawFace(pass, corners[1], corners[3], corners[5], corners[7],
                  vec3(-1, 0, 0), "left", hoveredFace == "left", selectedFaces)
+    
+    -- Right face (2,4,6,8)
+    self:drawFace(pass, corners[2], corners[4], corners[6], corners[8],
+                 vec3(1, 0, 0), "right", hoveredFace == "right", selectedFaces)
+end
+
+function Block:rotate(direction)
+    -- direction should be 1 for clockwise, -1 for counterclockwise
+    
+    -- Rotate top vertices (1-4)
+    if direction == 1 then
+        -- Clockwise rotation for top vertices
+        local temp = self.vertices[1]
+        self.vertices[1] = self.vertices[3]
+        self.vertices[3] = self.vertices[4]
+        self.vertices[4] = self.vertices[2]
+        self.vertices[2] = temp
+        
+        -- Clockwise rotation for bottom vertices (5-8)
+        temp = self.vertices[5]
+        self.vertices[5] = self.vertices[7]
+        self.vertices[7] = self.vertices[8]
+        self.vertices[8] = self.vertices[6]
+        self.vertices[6] = temp
+    else
+        -- Counterclockwise rotation for top vertices
+        local temp = self.vertices[1]
+        self.vertices[1] = self.vertices[2]
+        self.vertices[2] = self.vertices[4]
+        self.vertices[4] = self.vertices[3]
+        self.vertices[3] = temp
+        
+        -- Counterclockwise rotation for bottom vertices
+        temp = self.vertices[5]
+        self.vertices[5] = self.vertices[6]
+        self.vertices[6] = self.vertices[8]
+        self.vertices[8] = self.vertices[7]
+        self.vertices[7] = temp
+    end
+
+    -- Rotate face textures
+    local faces = {"front", "right", "back", "left"}
+    local textures = {}
+    local textureInfos = {}
+    
+    -- Store current textures and their info
+    for _, face in ipairs(faces) do
+        textures[face] = self.faceTextures[face]
+        textureInfos[face] = self.faceTextureInfos[face]
+    end
+    
+    if direction == 1 then
+        -- Clockwise rotation
+        self.faceTextures.front = textures.left
+        self.faceTextures.right = textures.front
+        self.faceTextures.back = textures.right
+        self.faceTextures.left = textures.back
+        
+        self.faceTextureInfos.front = textureInfos.left
+        self.faceTextureInfos.right = textureInfos.front
+        self.faceTextureInfos.back = textureInfos.right
+        self.faceTextureInfos.left = textureInfos.back
+    else
+        -- Counterclockwise rotation
+        self.faceTextures.front = textures.right
+        self.faceTextures.right = textures.back
+        self.faceTextures.back = textures.left
+        self.faceTextures.left = textures.front
+        
+        self.faceTextureInfos.front = textureInfos.right
+        self.faceTextureInfos.right = textureInfos.back
+        self.faceTextureInfos.back = textureInfos.left
+        self.faceTextureInfos.left = textureInfos.front
+    end
 end
 
 function Block:drawHighlight(pass)
@@ -366,59 +430,5 @@ function Block:intersectFace(rayStart, rayDir)
     return closestFace, closestT
 end
 
-function Block:rotate(direction)
-    -- direction should be 1 for clockwise, -1 for counterclockwise
-    -- Rotate vertex heights (corners)
-    if direction == 1 then
-        -- Clockwise rotation
-        local temp = self.vertices[1]
-        self.vertices[1] = self.vertices[3]
-        self.vertices[3] = self.vertices[4]
-        self.vertices[4] = self.vertices[2]
-        self.vertices[2] = temp
-    else
-        -- Counterclockwise rotation
-        local temp = self.vertices[1]
-        self.vertices[1] = self.vertices[2]
-        self.vertices[2] = self.vertices[4]
-        self.vertices[4] = self.vertices[3]
-        self.vertices[3] = temp
-    end
-
-    -- Rotate face textures and their info
-    local faces = {"front", "right", "back", "left"}
-    local textures = {}
-    local textureInfos = {}
-    
-    -- Store current textures and their info
-    for _, face in ipairs(faces) do
-        textures[face] = self.faceTextures[face]
-        textureInfos[face] = self.faceTextureInfos[face]
-    end
-    
-    if direction == 1 then
-        -- Clockwise rotation
-        self.faceTextures.front = textures.left
-        self.faceTextures.right = textures.front
-        self.faceTextures.back = textures.right
-        self.faceTextures.left = textures.back
-        
-        self.faceTextureInfos.front = textureInfos.left
-        self.faceTextureInfos.right = textureInfos.front
-        self.faceTextureInfos.back = textureInfos.right
-        self.faceTextureInfos.left = textureInfos.back
-    else
-        -- Counterclockwise rotation
-        self.faceTextures.front = textures.right
-        self.faceTextures.right = textures.back
-        self.faceTextures.back = textures.left
-        self.faceTextures.left = textures.front
-        
-        self.faceTextureInfos.front = textureInfos.right
-        self.faceTextureInfos.right = textureInfos.back
-        self.faceTextureInfos.back = textureInfos.left
-        self.faceTextureInfos.left = textureInfos.front
-    end
-end
 
 return Block
