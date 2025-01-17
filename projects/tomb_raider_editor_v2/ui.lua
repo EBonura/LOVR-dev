@@ -271,20 +271,15 @@ function UI:handleClick(x, y)
         if self.world.currentMode == self.world.MODE_PLACE or
            (self.world.currentMode == self.world.MODE_SELECT and #self.world.selectedBlocks > 0) then
             
-            -- Save state before modifying blocks
-            if self.world.currentMode == self.world.MODE_SELECT and self.world.history then
-                self.world.history:pushState(self.world)
-            end
-
             -- Toggle the face state
             self.enabledFaces[self.hoveredFace] = not self.enabledFaces[self.hoveredFace]
-
+            
             -- In SELECT mode, apply changes to selected blocks
             if self.world.currentMode == self.world.MODE_SELECT then
-                for _, block in ipairs(self.world.selectedBlocks) do
-                    if self.enabledFaces[self.hoveredFace] then
-                        -- Apply texture if face is enabled
-                        if self.selectedTexture then
+                if self.enabledFaces[self.hoveredFace] then
+                    -- Apply texture if face is enabled
+                    if self.selectedTexture then
+                        for _, block in ipairs(self.world.selectedBlocks) do
                             block:setFaceTexture(
                                 self.hoveredFace,
                                 self.selectedTexture.texture,
@@ -294,13 +289,15 @@ function UI:handleClick(x, y)
                                 }
                             )
                         end
-                    else
-                        -- Remove texture if face is disabled
+                    end
+                else
+                    -- Remove texture if face is disabled
+                    for _, block in ipairs(self.world.selectedBlocks) do
                         block:setFaceTexture(self.hoveredFace, nil, nil)
                     end
                 end
             end
-
+            
             return true
         end
     end
