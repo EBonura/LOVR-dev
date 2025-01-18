@@ -121,7 +121,8 @@ function UI:updateHoveredButton(x, y)
 
     -- Check cube net face hover - recalculate y to match drawCubeNet coordinates
     if self.world and (self.world.currentMode == self.world.MODE_PLACE or 
-                      (self.world.currentMode == self.world.MODE_SELECT and #self.world.selectedBlocks > 0)) then
+    (self.world.currentMode == self.world.MODE_SELECT and #self.world.selectedBlocks > 0) or
+    (self.world.currentMode == self.world.MODE_FACE_SELECT and #self.world.selectedFaces > 0)) then
         local centerX = panelX + self.panelWidth/2
         local centerY = height - 150  -- Match the position in drawCubeNet
         
@@ -157,8 +158,9 @@ function UI:drawCubeNet(pass, x, y)
 
     -- Check if we should show cube net interactively
     local isInteractive = self.world and 
-                         (self.world.currentMode == self.world.MODE_PLACE or 
-                          (self.world.currentMode == self.world.MODE_SELECT and #self.world.selectedBlocks > 0))
+    (self.world.currentMode == self.world.MODE_PLACE or 
+     (self.world.currentMode == self.world.MODE_SELECT and #self.world.selectedBlocks > 0) or
+     (self.world.currentMode == self.world.MODE_FACE_SELECT and #self.world.selectedFaces > 0))
     
     -- Draw each face
     for face, pos in pairs(self.facePositions) do
@@ -287,15 +289,21 @@ function UI:handleClick(x, y)
     if self.world and self.hoveredFace then
         -- Check if we're in a mode that allows face interaction
         if self.world.currentMode == self.world.MODE_PLACE or
-           (self.world.currentMode == self.world.MODE_SELECT and #self.world.selectedBlocks > 0) then
+        (self.world.currentMode == self.world.MODE_SELECT and #self.world.selectedBlocks > 0) or
+        (self.world.currentMode == self.world.MODE_FACE_SELECT and #self.world.selectedFaces > 0) then
+            
+            -- Save state before modifying blocks
+            if self.world.currentMode ~= self.world.MODE_PLACE then
+                self.world.history:pushState(self.world)
+            end
             
             -- Toggle the face state
             self.enabledFaces[self.hoveredFace] = not self.enabledFaces[self.hoveredFace]
             
-            -- In SELECT mode, apply changes to selected blocks
+            -- Handle face texture changes based on mode
             if self.world.currentMode == self.world.MODE_SELECT then
+                -- Apply to all selected blocks
                 if self.enabledFaces[self.hoveredFace] then
-                    -- Apply texture if face is enabled
                     if self.selectedTexture then
                         for _, block in ipairs(self.world.selectedBlocks) do
                             block:setFaceTexture(
@@ -314,6 +322,25 @@ function UI:handleClick(x, y)
                         block:setFaceTexture(self.hoveredFace, nil, nil)
                     end
                 end
+            elseif self.world.currentMode == self.world.MODE_FACE_SELECT then
+                -- Get the block from the first selected face
+                local block = self.world.selectedFaces[1].block
+                
+                if self.enabledFaces[self.hoveredFace] then
+                    if self.selectedTexture then
+                        block:setFaceTexture(
+                            self.hoveredFace,
+                            self.selectedTexture.texture,
+                            {
+                                folder = self.selectedTexture.folder,
+                                number = self.selectedTexture.number
+                            }
+                        )
+                    end
+                else
+                    -- Remove texture if face is disabled
+                    block:setFaceTexture(self.hoveredFace, nil, nil)
+                end
             end
             
             return true
@@ -324,39 +351,48 @@ function UI:handleClick(x, y)
 end
 
 -- Helper function to handle texture selection
-function UI:handleTextureSelection(index)
-    local selectedTex = self.textures[index]
-    if not selectedTex then return false end
-    
-    self.selectedTexture = selectedTex
-    
-    -- Create texture info
-    local textureInfo = {
-        folder = selectedTex.folder,
-        number = selectedTex.number
-    }
-    
-    -- Update textures based on mode
-    if self.world then
-        if self.world.currentMode == self.world.MODE_SELECT then
-            -- Update all selected blocks
-            for _, block in ipairs(self.world.selectedBlocks) do
-                block:setTexture(selectedTex.texture, textureInfo)
-            end
-        elseif self.world.currentMode == self.world.MODE_FACE_SELECT then
-            -- Update all selected faces
-            for _, faceInfo in ipairs(self.world.selectedFaces) do
-                faceInfo.block:setFaceTexture(
-                    faceInfo.face,
-                    selectedTex.texture,
-                    textureInfo
-                )
+    function UI:handleTextureSelection(index)
+        local selectedTex = self.textures[index]
+        if not selectedTex then return false end
+        
+        self.selectedTexture = selectedTex
+        
+        -- Create texture info
+        local textureInfo = {
+            folder = selectedTex.folder,
+            number = selectedTex.number
+        }
+        
+        -- Update textures based on mode
+        if self.world then
+            if self.world.currentMode == self.world.MODE_SELECT then
+                -- Update all selected blocks, but only enabled faces
+                for _, block in ipairs(self.world.selectedBlocks) do
+                    -- Apply texture only to enabled faces
+                    for face, enabled in pairs(self.enabledFaces) do
+                        if enabled then
+                            block:setFaceTexture(
+                                face,
+                                selectedTex.texture,
+                                textureInfo
+                            )
+                        end
+                    end
+                end
+            elseif self.world.currentMode == self.world.MODE_FACE_SELECT then
+                -- Update all selected faces
+                for _, faceInfo in ipairs(self.world.selectedFaces) do
+                    faceInfo.block:setFaceTexture(
+                        faceInfo.face,
+                        selectedTex.texture,
+                        textureInfo
+                    )
+                end
             end
         end
+        
+        return true
     end
-    
-    return true
-end
 
 function UI:drawShortcutHint(pass)
     if not self.world then return end
