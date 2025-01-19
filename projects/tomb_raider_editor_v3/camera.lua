@@ -6,8 +6,8 @@ local Camera = {
     sensitivity = 0.002,                     -- Mouse sensitivity
     lastx = 0,                               -- Last mouse x position
     lasty = 0,                               -- Last mouse y position
-    yaw = 0,                                 -- Current yaw angle
-    pitch = 0                                -- Current pitch angle
+    yaw = math.pi/2,                         -- Initial yaw angle (90 degrees to face grid)
+    pitch = -math.pi/6                       -- Initial pitch angle (-30 degrees downward)
 }
 
 function Camera:new()
@@ -19,9 +19,14 @@ function Camera:new()
         sensitivity = 0.002,
         lastx = 0,
         lasty = 0,
-        yaw = 0,
-        pitch = 0
+        yaw = math.pi/2,    -- Initial yaw angle (90 degrees to face grid)
+        pitch = -math.pi/6  -- Initial pitch angle (-30 degrees downward)
     }, { __index = Camera })
+    
+    -- Apply initial rotation
+    camera.rotation:mul(lovr.math.quat(camera.yaw, 0, 1, 0))
+    camera.rotation:mul(lovr.math.quat(camera.pitch, 1, 0, 0))
+    
     return camera
 end
 
