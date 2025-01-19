@@ -1,3 +1,4 @@
+-- Camera.lua
 local Camera = {
     position = lovr.math.newVec3(0, 2, -4),  -- Camera starting position
     rotation = lovr.math.newQuat(),          -- Camera rotation as quaternion
@@ -30,12 +31,15 @@ function Camera:new()
     return camera
 end
 
-function Camera:update(dt)
-    -- Camera rotation with mouse input
+function Camera:handleMouseInput()
     if lovr.system.isMouseDown(2) then -- Right mouse button
         local mx, my = lovr.system.getMousePosition()
         
-        if self.mouseDown then
+        if not self.mouseDown then
+            self.mouseDown = true
+            self.lastx = mx
+            self.lasty = my
+        else
             local dx = (mx - self.lastx) * self.sensitivity 
             local dy = (my - self.lasty) * self.sensitivity
             
@@ -47,13 +51,16 @@ function Camera:update(dt)
             self.rotation = lovr.math.newQuat()
             self.rotation:mul(lovr.math.quat(self.yaw, 0, 1, 0))
             self.rotation:mul(lovr.math.quat(self.pitch, 1, 0, 0))
+            
+            self.lastx = mx
+            self.lasty = my
         end
-        
-        self.lastx = mx
-        self.lasty = my
+    else
+        self.mouseDown = false
     end
+end
 
-    -- WASD movement
+function Camera:handleKeyboardInput(dt)
     local dx, dy, dz = 0, 0, 0
     if lovr.system.isKeyDown('w') then dz = -1 end
     if lovr.system.isKeyDown('s') then dz = 1 end
@@ -69,18 +76,9 @@ function Camera:update(dt)
     self.position:add(movement)
 end
 
-function Camera:mousepressed(x, y, button)
-    if button == 2 then
-        self.mouseDown = true
-        -- Initialize last position when starting to drag
-        self.lastx, self.lasty = lovr.system.getMousePosition()
-    end
-end
-
-function Camera:mousereleased(x, y, button)
-    if button == 2 then
-        self.mouseDown = false
-    end
+function Camera:update(dt)
+    self:handleMouseInput()
+    self:handleKeyboardInput(dt)
 end
 
 return Camera
