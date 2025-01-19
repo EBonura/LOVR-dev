@@ -4,24 +4,24 @@ local Camera = {
     speed = 3,                               -- Movement speed
     mouseDown = false,                       -- Track right mouse button state
     sensitivity = 0.002,                     -- Mouse sensitivity
-    lastx = 0,                               -- Last mouse x position
-    lasty = 0,                               -- Last mouse y position
-    yaw = math.pi/2,                         -- Initial yaw angle (90 degrees to face grid)
-    pitch = -math.pi/6                       -- Initial pitch angle (-30 degrees downward)
+    lastx = 0,                              -- Last mouse x position
+    lasty = 0,                              -- Last mouse y position
+    yaw = math.pi/2,                        -- Initial yaw angle (90 degrees to face grid)
+    pitch = -math.pi/6                      -- Initial pitch angle (-30 degrees downward)
 }
 
 function Camera:new()
-    local camera = setmetatable({
-        position = lovr.math.newVec3(0, 2, -4),
-        rotation = lovr.math.newQuat(),
-        speed = 3,
-        mouseDown = false,
-        sensitivity = 0.002,
-        lastx = 0,
-        lasty = 0,
-        yaw = math.pi/2,    -- Initial yaw angle (90 degrees to face grid)
-        pitch = -math.pi/6  -- Initial pitch angle (-30 degrees downward)
-    }, { __index = Camera })
+    local camera = setmetatable({}, { __index = Camera })
+    
+    -- Copy default values
+    for k, v in pairs(Camera) do
+        if type(v) == 'table' then
+            -- Deep copy for vector/quaternion objects
+            camera[k] = v:clone()
+        else
+            camera[k] = v
+        end
+    end
     
     -- Apply initial rotation
     camera.rotation:mul(lovr.math.quat(camera.yaw, 0, 1, 0))
