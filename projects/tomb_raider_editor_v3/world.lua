@@ -4,13 +4,27 @@ local World = {
     camera = nil,
     showGrid = true,     -- Grid visibility state
     gridSize = 50,       -- Larger grid size
-    gridDivisions = 50   -- Number of grid divisions
+    gridDivisions = 50,  -- Number of grid divisions
+    keyStates = {}       -- Track state of all keys
 }
 
 function World:new()
     local world = setmetatable({}, { __index = World })
     world.camera = Camera:new()
+    world.keyStates = {}
     return world
+end
+
+function World:isKeyTriggered(key)
+    if lovr.system.isKeyDown(key) then
+        if not self.keyStates[key] then
+            self.keyStates[key] = true
+            return true
+        end
+    else
+        self.keyStates[key] = false
+    end
+    return false
 end
 
 function World:update(dt)
@@ -31,15 +45,9 @@ function World:draw(pass)
 end
 
 function World:handleInput()
-    -- Toggle grid with 'g' key
-    if lovr.system.isKeyDown('g') then
-        -- Only toggle once per press
-        if not self.gKeyPressed then
-            self.showGrid = not self.showGrid
-            self.gKeyPressed = true
-        end
-    else
-        self.gKeyPressed = false
+    -- Toggle grid with 'g' key using generalized system
+    if self:isKeyTriggered('g') then
+        self.showGrid = not self.showGrid
     end
     
     -- Pass mouse events to camera
