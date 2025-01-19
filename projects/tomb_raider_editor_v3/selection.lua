@@ -18,9 +18,9 @@ local Selection = {
 
     -- Mode-specific colors
     modeColors = {
-        FACE = {1, 0.5, 0.5, 1},    -- Red
-        EDGE = {0.5, 1, 0.5, 1},    -- Green
-        VERTEX = {0.5, 0.5, 1, 1}   -- Blue
+        FACE = {0.7, 0.2, 0.2, 1},    -- Strong dark red
+        EDGE = {0.2, 0.6, 0.2, 1},    -- Strong dark green
+        VERTEX = {0.2, 0.2, 0.8, 1}   -- Strong dark blue
     }
 }
 

@@ -23,8 +23,7 @@ function UI:new(selection)
         width = 200,
         height = 40,
         text = selection.currentMode .. " MODE",
-        backgroundColor = selection:getCurrentModeColor(),
-        isHoverable = true  -- Optional: enable hover effect even if not a button
+        isHoverable = false  -- Optional: enable hover effect even if not a button
     })
     
     return ui
