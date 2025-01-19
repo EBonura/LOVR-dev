@@ -9,8 +9,7 @@ local World = {
     gridSize = 20,
     faces = {},
     keyStates = {},
-    selection = nil,  -- Selection manager
-    ui = nil         -- UI manager
+    selection = nil
 }
 
 function World:new(selection)
@@ -33,33 +32,26 @@ function World:update(dt)
     self:handleInput()
     self.camera:update(dt)
     
-    -- Clear previous hover states
-    self.selection:clearHovered()
-    
     -- Calculate ray and intersections
     local ray = self:calculateRayFromMouse()
-    local intersections = self:calculateIntersections(ray)
-    
-    -- Update hover states based on current mode
-    if self.selection.currentMode == self.selection.MODE_FACE and intersections.face then
-        self.selection.hoveredFace = intersections.face
-    elseif self.selection.currentMode == self.selection.MODE_EDGE and intersections.edge then
-        self.selection.hoveredEdge = intersections.edge
-    elseif self.selection.currentMode == self.selection.MODE_VERTEX and intersections.vertex then
-        self.selection.hoveredVertex = intersections.vertex
+    if ray then
+        local intersections = self:calculateIntersections(ray)
+        self.selection:updateHoverState(intersections)
     end
 end
 
 function World:draw(pass)
-    -- Draw 3D scene with camera view
+    -- Set up view
     pass:setViewPose(1, self.camera.position, self.camera.rotation)
     
     -- Draw grid
-    self:drawGrid(pass)
+    if self.showGrid then
+        self:drawGrid(pass)
+    end
     
-    -- Draw faces using selection manager
+    -- Draw faces - each face handles its own drawing based on its state
     for _, face in ipairs(self.faces) do
-        self.selection:drawFace(pass, face)
+        face:draw(pass, self.selection.currentMode)
     end
 end
 
@@ -104,6 +96,17 @@ function World:handleKeyPress(key)
     return false
 end
 
+function World:handleMousePressed(button, x, y)
+    if button == 1 then  -- Left click
+        local ray = self:calculateRayFromMouse()
+        if ray then
+            local intersections = self:calculateIntersections(ray)
+            local isShiftHeld = lovr.system.isKeyDown('lshift') or lovr.system.isKeyDown('rshift')
+            self.selection:handleClick(intersections, isShiftHeld)
+        end
+    end
+end
+
 function World:handleInput()
     -- Handle mode switches
     local keys = {'1', '2', '3'} -- Define keys outside the loop
@@ -127,20 +130,24 @@ function World:calculateRayFromMouse()
     
     -- Convert mouse to normalized device coordinates (-1 to 1)
     local nx = (mx / width) * 2 - 1
-    local ny = ((height - my) / height) * 2 - 1
+    local ny = -((my / height) * 2 - 1)  -- Flip Y coordinate
     
-    -- Create ray direction
+    local fov = 67.5  -- Matches LÖVR's default FOV
+    local tanFov = math.tan(math.rad(fov) / 2)
+    local aspect = width / height
+    
+    -- Create view-space ray direction
     local rayDir = lovr.math.vec3(
-        nx * math.tan(math.rad(67.5/2)) * (width/height),
-        ny * math.tan(math.rad(67.5/2)),
+        nx * aspect * tanFov,
+        ny * tanFov,
         -1
     ):normalize()
     
-    -- Transform ray direction by camera rotation
+    -- Transform ray by camera rotation to get world-space direction
     rayDir:rotate(self.camera.rotation)
     
     return {
-        origin = self.camera.position,
+        origin = lovr.math.vec3(self.camera.position), -- Clone position
         direction = rayDir
     }
 end

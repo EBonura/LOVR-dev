@@ -1,3 +1,4 @@
+-- main.lua
 local World = require('world')
 local UI = require('ui')
 local Selection = require('selection')
@@ -15,7 +16,6 @@ function lovr.load()
 end
 
 function lovr.draw(pass)
-    -- Draw 3D world first
     engine.world:draw(pass)
     engine.ui:drawHUD(pass)
 end
