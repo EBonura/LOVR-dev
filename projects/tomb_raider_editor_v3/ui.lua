@@ -1,8 +1,11 @@
 -- ui.lua
+local InfoBox = require('InfoBox')
+
 local UI = {
-    selection = nil,  -- Reference to Selection module
-    width = 0,      -- Window width
-    height = 0,     -- Window height
+    selection = nil,
+    width = 0,
+    height = 0,
+    modeBox = nil
 }
 
 function UI:new(selection)
@@ -10,69 +13,52 @@ function UI:new(selection)
     ui.selection = selection
     ui.width, ui.height = lovr.system.getWindowDimensions()
     
-    -- Add this line
+    -- Set up pixel density for the default font
     lovr.graphics.getDefaultFont():setPixelDensity(1)
+    
+    -- Create mode info box (non-interactive)
+    ui.modeBox = InfoBox:new({
+        x = ui.width/2,
+        y = 40,
+        width = 200,
+        height = 40,
+        text = selection.currentMode .. " MODE",
+        backgroundColor = selection:getCurrentModeColor(),
+        isHoverable = true  -- Optional: enable hover effect even if not a button
+    })
     
     return ui
 end
 
 function UI:update(dt)
-    -- Update window dimensions in case of resize
+    -- Update window dimensions and box position in case of resize
     self.width, self.height = lovr.system.getWindowDimensions()
+    self.modeBox:setPosition(self.width/2, 40)
+    
+    -- Update box text and color
+    self.modeBox:setText(self.selection.currentMode .. " MODE")
+    self.modeBox:setBackgroundColor(self.selection:getCurrentModeColor())
+    
+    -- Update hover state
+    self.modeBox:update(dt)
 end
 
 function UI:drawHUD(pass)
-    local width, height = lovr.system.getWindowDimensions()
-    
-    -- Reset view and set up 2D projection
+    -- Set up 2D projection
     pass:setViewPose(1, mat4():identity())
-    pass:setProjection(1, mat4():orthographic(0, width, height, 0, -1, 1))
+    pass:setProjection(1, mat4():orthographic(0, self.width, self.height, 0, -1, 1))
     
-    -- Draw mode indicator with explicit positioning
-    local modeColor = self.selection:getCurrentModeColor()
-    pass:setColor(unpack(modeColor))
-    pass:plane(
-        width/2,  -- Center X
-        40,       -- Y from top
-        0,        -- Z
-        200,      -- Width
-        40        -- Height
-    )
-    
-    -- Draw text with explicit font and positioning
-    local font = lovr.graphics.getDefaultFont()
-    pass:setFont(font)
-    pass:setColor(1, 1, 1, 1)
-    pass:text(
-        self.selection.currentMode .. " MODE",
-        width/2,  -- Center X
-        40,       -- Y from top
-        0,        -- Z
-        0.5,      -- Scale
-        0,        -- Rotation
-        0, 1, 0,  -- Axis
-        0,        -- Wrap width
-        'center'  -- Alignment
-    )
+    -- Draw the mode box
+    self.modeBox:draw(pass)
 end
 
 function UI:handleInput()
-    -- Handle keyboard input
-    if lovr.system.isKeyDown('escape') then
-        return
-    end
-
-    -- Handle mouse input
-    if lovr.system.isMouseDown(1) then  -- Left mouse button
-        return
-    end
-
-    if lovr.system.isMouseDown(2) then  -- Right mouse button
-        return
-    end
-
-    -- Get mouse position
     local x, y = lovr.system.getMousePosition()
+    
+    if lovr.system.isMouseDown(1) then  -- Left mouse button
+        -- Example of handling button clicks if any InfoBoxes are buttons
+        self.modeBox:handleMousePressed(x, y, 1)
+    end
 end
 
 return UI
