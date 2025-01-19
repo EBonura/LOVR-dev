@@ -9,13 +9,8 @@ local engine = {
 }
 
 function lovr.load()
-    -- Create selection first since both World and UI need it
     engine.selection = Selection:new()
-    
-    -- Create world with selection reference
     engine.world = World:new(engine.selection)
-    
-    -- Create UI with selection reference
     engine.ui = UI:new(engine.selection)
 end
 

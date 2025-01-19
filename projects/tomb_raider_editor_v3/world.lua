@@ -90,7 +90,8 @@ end
 
 function World:handleInput()
     -- Handle mode switches
-    for key in pairs({'1', '2', '3'}) do
+    local keys = {'1', '2', '3'} -- Define keys outside the loop
+    for _, key in ipairs(keys) do
         if lovr.system.isKeyDown(key) and not self.keyStates[key] then
             self:handleKeyPress(key)
         end
