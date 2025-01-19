@@ -25,10 +25,15 @@ function lovr.update(dt)
     engine.ui:update(dt)
 end
 
+function lovr.mousepressed(x, y, button)
+    engine.world:handleMousePressed(button, x, y)
+end
+
 function lovr.keypressed(key)
     if key == 'escape' then
         lovr.event.quit()
     end
+    engine.world:handleKeyPress(key)
 end
 
 return engine
