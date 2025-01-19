@@ -1,12 +1,14 @@
 local Camera = require('camera')
 local geometry = require('geometry')
+local Selection = require('selection')
 
 local World = {
     camera = nil,
     showGrid = true,
-    gridSize = 20,  -- Smaller grid size for better visualization
+    gridSize = 20,
     faces = {},
-    keyStates = {}
+    keyStates = {},
+    selection = nil  -- Selection manager
 }
 
 function World:new()
@@ -14,14 +16,12 @@ function World:new()
     world.camera = Camera:new()
     world.keyStates = {}
     world.faces = {}
+    world.selection = Selection:new()
     
     -- Create a sample vertical face for testing
     local face = geometry.Face:new(0, 0, 0, 'z', 1)
-    
-    -- Make it slanted by adjusting heights
-    face:adjustVertexHeight(1, 2)  -- Raise first vertex by 0.5 units
-    face:adjustVertexHeight(2, 1)  -- Raise second vertex by 0.25 units
-    
+    face:adjustVertexHeight(1, 2)
+    face:adjustVertexHeight(2, 1)
     table.insert(world.faces, face)
     
     return world
@@ -59,19 +59,45 @@ function World:update(dt)
 end
 
 function World:draw(pass)
-    -- Set up 3D rendering with camera
+    -- 3D Scene
     pass:setViewPose(1, self.camera.position, self.camera.rotation)
     
-    -- Draw aligned grid
+    -- Draw grid
     self:drawGrid(pass)
     
-    -- Draw all faces
+    -- Draw faces using selection manager
     for _, face in ipairs(self.faces) do
-        face:draw(pass)
+        self.selection:drawFace(pass, face)
     end
+    
+    -- Draw HUD
+    self.selection:drawHUD(pass)
+end
+
+function World:handleKeyPress(key)
+    -- Mode switching
+    if key == '1' then
+        self.selection:setMode(self.selection.MODE_FACE)
+        return true
+    elseif key == '2' then
+        self.selection:setMode(self.selection.MODE_EDGE)
+        return true
+    elseif key == '3' then
+        self.selection:setMode(self.selection.MODE_VERTEX)
+        return true
+    end
+    return false
 end
 
 function World:handleInput()
+    -- Handle mode switches
+    for key in pairs({'1', '2', '3'}) do
+        if lovr.system.isKeyDown(key) and not self.keyStates[key] then
+            self:handleKeyPress(key)
+        end
+        self.keyStates[key] = lovr.system.isKeyDown(key)
+    end
+    
     -- Toggle grid with 'g' key
     if lovr.system.isKeyDown('g') and not self.keyStates['g'] then
         self.showGrid = not self.showGrid
