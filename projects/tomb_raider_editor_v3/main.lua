@@ -22,8 +22,6 @@ end
 function lovr.draw(pass)
     -- Draw 3D world first
     engine.world:draw(pass)
-    
-    -- Draw UI on top
     engine.ui:drawHUD(pass)
 end
 

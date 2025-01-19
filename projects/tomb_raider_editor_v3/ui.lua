@@ -9,6 +9,10 @@ function UI:new(selection)
     local ui = setmetatable({}, { __index = UI })
     ui.selection = selection
     ui.width, ui.height = lovr.system.getWindowDimensions()
+    
+    -- Add this line
+    lovr.graphics.getDefaultFont():setPixelDensity(1)
+    
     return ui
 end
 
@@ -18,19 +22,37 @@ function UI:update(dt)
 end
 
 function UI:drawHUD(pass)
-    -- Set up 2D orthographic projection for UI elements
     local width, height = lovr.system.getWindowDimensions()
-    pass:setProjection(1, mat4():orthographic(0, width, 0, height, -1, 1))
     
-    -- Draw mode indicator
+    -- Reset view and set up 2D projection
+    pass:setViewPose(1, mat4():identity())
+    pass:setProjection(1, mat4():orthographic(0, width, height, 0, -1, 1))
+    
+    -- Draw mode indicator with explicit positioning
     local modeColor = self.selection:getCurrentModeColor()
     pass:setColor(unpack(modeColor))
+    pass:plane(
+        width/2,  -- Center X
+        40,       -- Y from top
+        0,        -- Z
+        200,      -- Width
+        40        -- Height
+    )
+    
+    -- Draw text with explicit font and positioning
+    local font = lovr.graphics.getDefaultFont()
+    pass:setFont(font)
+    pass:setColor(1, 1, 1, 1)
     pass:text(
         self.selection.currentMode .. " MODE",
-        20,
-        height - 40,
-        0,
-        0.5  -- Text scale
+        width/2,  -- Center X
+        40,       -- Y from top
+        0,        -- Z
+        0.5,      -- Scale
+        0,        -- Rotation
+        0, 1, 0,  -- Axis
+        0,        -- Wrap width
+        'center'  -- Alignment
     )
 end
 
