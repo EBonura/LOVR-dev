@@ -1,3 +1,4 @@
+-- World.lua
 local Camera = require('camera')
 
 local World = {
@@ -30,7 +31,6 @@ end
 function World:update(dt)
     self:handleInput()
     self.camera:update(dt)
-    -- Rest of world update logic
 end
 
 function World:draw(pass)
@@ -48,20 +48,6 @@ function World:handleInput()
     -- Toggle grid with 'g' key using generalized system
     if self:isKeyTriggered('g') then
         self.showGrid = not self.showGrid
-    end
-    
-    -- Pass mouse events to camera
-    local x, y = lovr.system.getMousePosition()
-    
-    -- Handle mouse press/release for camera
-    if lovr.system.isMouseDown(2) then -- Right mouse button
-        if not self.camera.mouseDown then
-            self.camera:mousepressed(x, y, 2)
-        end
-    else
-        if self.camera.mouseDown then
-            self.camera:mousereleased(x, y, 2)
-        end
     end
 end
 
