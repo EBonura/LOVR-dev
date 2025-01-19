@@ -1,42 +1,48 @@
+local Camera = require('camera')
+
 local World = {
-    -- Will contain 3D scene properties
+    camera = nil,
 }
 
 function World:new()
     local world = setmetatable({}, { __index = World })
+    world.camera = Camera:new()
     return world
 end
 
 function World:update(dt)
     self.handleInput()
-    -- Update world state
+    self.camera:update(dt)
+    -- Rest of world update logic
 end
 
 function World:draw(pass)
-    -- Render 3D scene
+    -- Set the camera view for rendering
+    pass:setViewPose(1, self.camera.position, self.camera.rotation)
+    
+    -- Draw a test grid
+    pass:setColor(0.5, 0.5, 0.5, 0.5)
+    pass:plane(0, 0, 0, 10, 10, -math.pi/2, 1, 0, 0, 'line', 10, 10)
+    
+    -- Draw a test cube
+    pass:setColor(1, 0, 0, 1)
+    pass:cube(0, 0.5, 0, 1, lovr.timer.getTime())
 end
 
 function World:handleInput()
-    -- Handle keyboard input
-    if lovr.system.isKeyDown('escape') then
-        return
-    end
-
-    -- Handle mouse input
-    if lovr.system.isMouseDown(1) then  -- Left mouse button
-        return
-    else
-        return
-    end
-
-    if lovr.system.isMouseDown(2) then  -- Right mouse button
-        return
-    else
-        return
-    end
-
-    -- Get mouse position
+    -- Pass mouse events to camera
     local x, y = lovr.system.getMousePosition()
+    
+    -- Handle mouse press/release for camera
+    if lovr.system.isMouseDown(2) then -- Right mouse button
+        if not self.camera.mouseDown then
+            self.camera:mousepressed(x, y, 2)
+        end
+    else
+        if self.camera.mouseDown then
+            self.camera:mousereleased(x, y, 2)
+        end
+    end
 end
 
 return World

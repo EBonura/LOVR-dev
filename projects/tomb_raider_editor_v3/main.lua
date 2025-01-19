@@ -11,19 +11,23 @@ function lovr.load()
     engine.ui = UI:new()
 end
 
-function lovr.update(dt)
-    engine.handleInput()
-    engine.world:update(dt)
-    engine.ui:update(dt)
-end
 
 function lovr.draw(pass)
     engine.world:draw(pass)
     engine.ui:draw(pass)
 end
 
-function engine:handleInput()
-    if lovr.system.isKeyDown('escape') then
+-- Handle input in update
+function lovr.update(dt)
+    engine.world:update(dt)
+    engine.ui:update(dt)
+end
+
+-- Handle quit
+function lovr.keypressed(key)
+    if key == 'escape' then
         lovr.event.quit()
     end
 end
+
+return engine
