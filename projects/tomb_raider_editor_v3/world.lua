@@ -1,6 +1,7 @@
 local Camera = require('camera')
 local geometry = require('geometry')
 local Selection = require('selection')
+local UI = require('ui')
 
 local World = {
     camera = nil,
@@ -8,15 +9,16 @@ local World = {
     gridSize = 20,
     faces = {},
     keyStates = {},
-    selection = nil  -- Selection manager
+    selection = nil,  -- Selection manager
+    ui = nil         -- UI manager
 }
 
-function World:new()
+function World:new(selection)
     local world = setmetatable({}, { __index = World })
     world.camera = Camera:new()
     world.keyStates = {}
     world.faces = {}
-    world.selection = Selection:new()
+    world.selection = selection
     
     -- Create a sample vertical face for testing
     local face = geometry.Face:new(0, 0, 0, 'z', 1)
@@ -25,6 +27,24 @@ function World:new()
     table.insert(world.faces, face)
     
     return world
+end
+
+function World:update(dt)
+    self:handleInput()
+    self.camera:update(dt)
+end
+
+function World:draw(pass)
+    -- Draw 3D scene with camera view
+    pass:setViewPose(1, self.camera.position, self.camera.rotation)
+    
+    -- Draw grid
+    self:drawGrid(pass)
+    
+    -- Draw faces using selection manager
+    for _, face in ipairs(self.faces) do
+        self.selection:drawFace(pass, face)
+    end
 end
 
 function World:drawGrid(pass)
@@ -51,27 +71,6 @@ function World:drawGrid(pass)
     
     pass:setColor(0, 0, 1, 1)  -- Blue for Z axis
     pass:line(0, 0, -halfSize, 0, 0, halfSize)
-end
-
-function World:update(dt)
-    self:handleInput()
-    self.camera:update(dt)
-end
-
-function World:draw(pass)
-    -- 3D Scene
-    pass:setViewPose(1, self.camera.position, self.camera.rotation)
-    
-    -- Draw grid
-    self:drawGrid(pass)
-    
-    -- Draw faces using selection manager
-    for _, face in ipairs(self.faces) do
-        self.selection:drawFace(pass, face)
-    end
-    
-    -- Draw HUD
-    self.selection:drawHUD(pass)
 end
 
 function World:handleKeyPress(key)

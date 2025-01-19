@@ -46,24 +46,6 @@ function Selection:getCurrentModeColor()
     return self.modeColors[self.currentMode]
 end
 
-function Selection:drawHUD(pass)
-    -- Set up 2D drawing
-    local width, height = lovr.system.getWindowDimensions()
-    local projection = mat4():orthographic(0, width, 0, height, -1, 1)
-    pass:setProjection(1, projection)
-    
-    -- Draw mode indicator
-    local color = self:getCurrentModeColor()
-    pass:setColor(unpack(color))
-    pass:text(
-        self.currentMode .. " MODE",
-        20,
-        height - 40,
-        0,
-        0.5  -- Text scale
-    )
-end
-
 function Selection:clearHovered()
     self.hoveredFace = nil
     self.hoveredEdge = nil
