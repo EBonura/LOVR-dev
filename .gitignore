@@ -9,5 +9,5 @@
 !projects/
 !projects/**
 
-# But ignore combined lua file
-projects/tomb_raider_editor_v2/combined_lua.lua
+# But ignore combined lua files
+*combine*_lua*
