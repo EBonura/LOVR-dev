@@ -11,7 +11,7 @@ function World:new()
 end
 
 function World:update(dt)
-    self.handleInput()
+    self:handleInput()
     self.camera:update(dt)
     -- Rest of world update logic
 end

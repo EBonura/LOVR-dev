@@ -7,7 +7,7 @@ function UI:new()
 end
 
 function UI:update(dt)
-    self.handleInput()
+    self:handleInput()
     -- Update UI state
 end
 

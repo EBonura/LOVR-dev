@@ -11,7 +11,17 @@ local Camera = {
 }
 
 function Camera:new()
-    local camera = setmetatable({}, { __index = Camera })
+    local camera = setmetatable({
+        position = lovr.math.newVec3(0, 2, -4),
+        rotation = lovr.math.newQuat(),
+        speed = 3,
+        mouseDown = false,
+        sensitivity = 0.002,
+        lastx = 0,
+        lasty = 0,
+        yaw = 0,
+        pitch = 0
+    }, { __index = Camera })
     return camera
 end
 
